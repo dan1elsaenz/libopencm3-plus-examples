@@ -3,4 +3,4 @@
 	url = https://github.com/arcoslab/libopencm3.git
 [submodule "libopencm3-plus"]
 	path = libopencm3-plus
-	url = https://github.com/arcoslab/libopencm3-plus.git
+	url = https://gitlab.com/arcoslab/libopencm3-plus.git
