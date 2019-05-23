@@ -20,6 +20,10 @@
 #include <math.h>
 #include <stdint.h>
 
+#include <libopencm3/cm3/nvic.h>
+#include <libopencm3/cm3/systick.h>
+#include <libopencm3/stm32/rcc.h>
+
 #include <libopencm3-plus/stm32f429idiscovery/clock.h>
 #include <libopencm3-plus/stm32f429idiscovery/console.h>
 #include <libopencm3-plus/stm32f429idiscovery/gfx.h>
@@ -28,6 +32,20 @@
 
 /* Convert degrees to radians */
 #define d2r(d) ((d)*6.2831853 / 360.0)
+
+void clock_setup(void) {
+  const uint32_t one_milisecond_rate = 168000;
+  /* Base board frequency, set to 168Mhz */
+  rcc_clock_setup_hse_3v3(&rcc_hse_8mhz_3v3[RCC_CLOCK_3V3_168MHZ]);
+
+  /* clock rate / 168000 to get 1mS interrupt rate */
+  systick_set_reload(one_milisecond_rate);
+  systick_set_clocksource(STK_CSR_CLKSOURCE_AHB);
+  systick_counter_enable();
+
+  /* this done last */
+  systick_interrupt_enable();
+}
 
 /*
  * This is our example, the heavy lifing is actually in lcd-spi.c but
