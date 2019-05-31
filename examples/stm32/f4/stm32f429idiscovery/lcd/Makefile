@@ -17,7 +17,7 @@
 ## along with this library.  If not, see <http://www.gnu.org/licenses/>.
 ##
 
-BINARY = lcd-serial
+BINARY = touch-screen
 
 OOCD_INTERFACE = stlink-v2-1
 
