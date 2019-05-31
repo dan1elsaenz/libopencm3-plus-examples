@@ -1,0 +1,35 @@
+#!/bin/bash
+
+# This script will format all the .c and .h files before to commit them
+#
+# Usage:
+# Copy this script as [repo]/.git/hooks/pre-commit directory, where [repo] is the
+# path of the project. It's important that the new file name will be pre-commit.
+#
+# Notes:
+# It's necessary install clang-format
+
+
+# Taking the staged files
+hFiles=$(git diff --name-only --cached 2> /dev/stdout | egrep '.*\.c$')
+cFiles=$(git diff --name-only --cached 2> /dev/stdout | egrep '.*\.h$')
+
+# Apply clang-format to files
+for file in $hFiles; do
+  echo "clang-format -style=../../hooks/.clang-format -i ${file}"
+  clang-format -i $file
+done
+
+for file in $cFiles; do
+  echo "clang-format -style=../../hooks/.clang-format -i ${file}"
+  clang-format -i $file
+done
+
+# Add the formated files again
+for file in $hFiles; do
+    git add $file
+done
+
+for file in $cFiles; do
+    git add $file
+done
