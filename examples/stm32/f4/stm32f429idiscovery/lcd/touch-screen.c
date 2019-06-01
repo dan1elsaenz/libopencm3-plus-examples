@@ -32,32 +32,12 @@
 #include <libopencm3-plus/stm32f429idiscovery/console.h>
 #include <libopencm3-plus/stm32f429idiscovery/gfx.h>
 #include <libopencm3-plus/stm32f429idiscovery/i2c-lcd-touch.h>
+#include <libopencm3-plus/stm32f429idiscovery/lcd-serial-touch.h>
 #include <libopencm3-plus/stm32f429idiscovery/lcd-spi.h>
 #include <libopencm3-plus/stm32f429idiscovery/sdram.h>
 #include <libopencm3-plus/utils/misc.h>
 
-#define CHIP_ID 0x00
-#define ID_VER 0x02
-#define SYS_CTRL1 0x03
-#define SYS_CTRL2 0x04
-#define TSC_CTRL 0x40
-#define TSC_CFG 0x41
-#define FIFO_TH 0x4A
-#define FIFO_STA 0x4B
-#define FIFO_SIZE 0x4C
-#define TSC_DATA_X 0x4D
-#define TSC_DATA_Y 0x4F
-#define TSC_DATA_Z 0x51
-
-// For touch screen (origin lower left)
-#define MIN_X 350
-#define MIN_Y 280
-#define MAX_X 3650
-#define MAX_Y 3800
-
-// For screen (origin upper left)
-#define X_RES 239
-#define Y_RES 319
+void tft_init(void);
 
 void clock_setup(void) {
   const uint32_t one_milisecond_rate = 168000;
@@ -73,22 +53,19 @@ void clock_setup(void) {
   systick_interrupt_enable();
 }
 
-void touch2lcd(int touch_x, int touch_y, int *lcd_x, int *lcd_y) {
-  *lcd_x = (touch_x - MIN_X) * X_RES / (MAX_X - MIN_X);
-  if (*lcd_x > X_RES) {
-    *lcd_x = X_RES;
-  }
-  if (*lcd_x < 0) {
-    *lcd_x = 0;
-  }
+void tft_init(void) {
+  i2c_init();
 
-  *lcd_y = Y_RES - (touch_y - MIN_Y) * Y_RES / (MAX_Y - MIN_Y);
-  if (*lcd_y > Y_RES) {
-    *lcd_y = Y_RES;
-  }
-  if (*lcd_y < 0) {
-    *lcd_y = 0;
-  }
+  tft_identify_check_device();
+
+  tft_turn_clock_control(false);
+  tft_touchscreen_enable_controller(false);
+
+  tft_touchscreen_apply_configuration();
+  tft_set_fifo_level_interrupt();
+
+  tft_touchscreen_enable_controller(true);
+  tft_turn_clock_control(true);
 }
 
 int main(void) {
@@ -96,123 +73,34 @@ int main(void) {
   console_setup(115200);
   sdram_init();
   lcd_spi_init();
-  i2c_init();
+  tft_init();
 
   gfx_init(lcd_draw_pixel, 240, 320);
   gfx_setTextColor(LCD_YELLOW, LCD_BLACK);
   gfx_setTextSize(LCD_TEXT_MIN_SIZE);
-
-  uint8_t data2[2];
-  uint8_t cmd2[2];
-  uint8_t data;
-  uint16_t datax, datay, dataz;
-  uint8_t cmd;
-  uint8_t fifo_state = 0;
-
-  cmd = CHIP_ID;
-  i2c_transfer7(STMPE811_I2C, STMPE811_ADDR, &cmd, 1, data2, 2);
-
-  cmd = ID_VER;
-  i2c_transfer7(STMPE811_I2C, STMPE811_ADDR, &cmd, 1, &data, 1);
-
-  cmd = SYS_CTRL2;
-  i2c_transfer7(STMPE811_I2C, STMPE811_ADDR, &cmd, 1, &data, 1);
-
-  cmd2[0] = SYS_CTRL2;
-  cmd2[1] = 0x00; // Turn off TSC and ADC clocks
-  i2c_transfer7(STMPE811_I2C, STMPE811_ADDR, cmd2, 2, &data, 0);
-
-  cmd = SYS_CTRL2;
-  i2c_transfer7(STMPE811_I2C, STMPE811_ADDR, &cmd, 1, &data, 1);
-
-  cmd = TSC_CTRL;
-  i2c_transfer7(STMPE811_I2C, STMPE811_ADDR, &cmd, 1, &data, 1);
-
-  cmd2[0] = TSC_CTRL;
-  cmd2[1] = 0x11; // Turn on TSC, 4 tracking index, TSC disable
-  i2c_transfer7(STMPE811_I2C, STMPE811_ADDR, cmd2, 2, &data, 0);
-
-  cmd = TSC_CTRL;
-  i2c_transfer7(STMPE811_I2C, STMPE811_ADDR, &cmd, 1, &data, 1);
-
-  cmd = TSC_CFG;
-  i2c_transfer7(STMPE811_I2C, STMPE811_ADDR, &cmd, 1, &data, 1);
-
-  cmd2[0] = TSC_CFG;
-  cmd2[1] = 0x9A;
-  i2c_transfer7(STMPE811_I2C, STMPE811_ADDR, cmd2, 2, &data, 0);
-
-  cmd = TSC_CFG;
-  i2c_transfer7(STMPE811_I2C, STMPE811_ADDR, &cmd, 1, &data, 1);
-
-  cmd = FIFO_TH;
-  i2c_transfer7(STMPE811_I2C, STMPE811_ADDR, &cmd, 1, &data, 1);
-
-  cmd2[0] = FIFO_TH;
-  cmd2[1] = 0x1; // Not zero!
-  i2c_transfer7(STMPE811_I2C, STMPE811_ADDR, cmd2, 2, &data, 0);
-
-  cmd = FIFO_TH;
-  i2c_transfer7(STMPE811_I2C, STMPE811_ADDR, &cmd, 1, &data, 1);
-
-  cmd = SYS_CTRL2;
-  i2c_transfer7(STMPE811_I2C, STMPE811_ADDR, &cmd, 1, &data, 1);
-
-  cmd2[0] = SYS_CTRL2;
-  cmd2[1] = 0x00; // Turn on all clocks
-  i2c_transfer7(STMPE811_I2C, STMPE811_ADDR, cmd2, 2, &data, 0);
-
-  cmd = SYS_CTRL2;
-  i2c_transfer7(STMPE811_I2C, STMPE811_ADDR, &cmd, 1, &data, 1);
-
-  cmd = TSC_CTRL;
-  i2c_transfer7(STMPE811_I2C, STMPE811_ADDR, &cmd, 1, &data, 1);
-
-  cmd2[0] = TSC_CTRL;
-  cmd2[1] = 0x11; // Turn on TSC, 4 tracking index, TSC disable
-  i2c_transfer7(STMPE811_I2C, STMPE811_ADDR, cmd2, 2, &data, 0);
-
-  cmd = TSC_CTRL;
-  i2c_transfer7(STMPE811_I2C, STMPE811_ADDR, &cmd, 1, &data, 1);
-
-  cmd = TSC_CFG;
-  i2c_transfer7(STMPE811_I2C, STMPE811_ADDR, &cmd, 1, &data, 1);
-
   lcd_show_frame();
 
   int x = 1;
   int y = 1;
+  uint8_t fifo_state = 0;
+  uint16_t datax = 0;
+  uint16_t datay = 0;
+  uint16_t dataz = 0;
+  char sData[64];
 
-  // uint8_t u8Counter = 0;
   while (true) {
-    char sData[64];
     gfx_fillScreen(LCD_BLACK);
     gfx_setCursor((int)(LCD_WIDTH / 4), (int)(LCD_HEIGHT / 2));
 
-    cmd = FIFO_STA;
-    i2c_transfer7(I2C3, STMPE811_ADDR, &cmd, 1, &data, 1);
-
-    cmd = FIFO_SIZE;
-    i2c_transfer7(I2C3, STMPE811_ADDR, &cmd, 1, &fifo_state, 1);
+    fifo_state = tft_get_fifo_size();
 
     while (fifo_state > 0) {
-
-      cmd = TSC_DATA_X;
-      i2c_transfer7(I2C3, STMPE811_ADDR, &cmd, 1, data2, 2);
-      datax = data2[1] | (data2[0] << 8);
-
-      cmd = TSC_DATA_Y;
-      i2c_transfer7(I2C3, STMPE811_ADDR, &cmd, 1, data2, 2);
-      datay = data2[1] | (data2[0] << 8);
-
-      cmd = TSC_DATA_Z;
-      i2c_transfer7(I2C3, STMPE811_ADDR, &cmd, 1, data2, 2);
-      dataz = data2[1];
-
-      cmd = FIFO_SIZE;
-      i2c_transfer7(I2C3, STMPE811_ADDR, &cmd, 1, &fifo_state, 1);
+      tft_get_coord_data_access(X_COORD, &datax);
+      tft_get_coord_data_access(Y_COORD, &datay);
+      tft_get_coord_data_access(Z_COORD, &dataz);
+      fifo_state = tft_get_fifo_size();
     }
-    touch2lcd(datax, datay, &x, &y);
+    tft_convert_touch_coord_to_lcd_coord(datax, datay, &x, &y);
     sprintf(sData, "%u %u", x, y);
     gfx_puts(sData);
     lcd_show_frame();
