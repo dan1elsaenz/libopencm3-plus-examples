@@ -17,12 +17,10 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 
-#include <libopencm3/cm3/nvic.h>
 #include <libopencm3/cm3/systick.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/i2c.h>
@@ -30,12 +28,10 @@
 
 #include <libopencm3-plus/stm32f429idiscovery/clock.h>
 #include <libopencm3-plus/stm32f429idiscovery/console.h>
-#include <libopencm3-plus/stm32f429idiscovery/gfx.h>
 #include <libopencm3-plus/stm32f429idiscovery/i2c-lcd-touch.h>
 #include <libopencm3-plus/stm32f429idiscovery/lcd-serial-touch.h>
 #include <libopencm3-plus/stm32f429idiscovery/lcd-spi.h>
 #include <libopencm3-plus/stm32f429idiscovery/sdram.h>
-#include <libopencm3-plus/utils/misc.h>
 
 void tft_init(void);
 
@@ -55,8 +51,6 @@ void clock_setup(void) {
 
 void tft_init(void) {
   i2c_init();
-
-  tft_identify_check_device();
 
   tft_turn_clock_control(false);
   tft_touchscreen_enable_controller(false);
