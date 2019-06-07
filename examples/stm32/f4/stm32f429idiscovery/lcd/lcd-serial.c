@@ -24,14 +24,16 @@
 #include <libopencm3/cm3/systick.h>
 #include <libopencm3/stm32/rcc.h>
 
+#include <libopencm3-plus/utils/misc.h>
+
 #include <libopencm3-plus/stm32f429idiscovery/clock.h>
 #include <libopencm3-plus/stm32f429idiscovery/console.h>
 #include <libopencm3-plus/stm32f429idiscovery/gfx.h>
 #include <libopencm3-plus/stm32f429idiscovery/lcd-spi.h>
 #include <libopencm3-plus/stm32f429idiscovery/sdram.h>
 
-/* Convert degrees to radians */
-#define d2r(d) ((d)*6.2831853 / 360.0)
+#define SLEEP_TIME 2000
+#define CONSOLE_BAUD_RATE 115200
 
 void clock_setup(void) {
   const uint32_t one_milisecond_rate = 168000;
@@ -52,17 +54,17 @@ void clock_setup(void) {
  * this drives that code.
  */
 int main(void) {
-  int p1, p2, p3;
+  int planet_1, planet_2, planet_3;
 
   clock_setup();
-  console_setup(115200);
+  console_setup(CONSOLE_BAUD_RATE);
   sdram_init();
   lcd_spi_init();
   console_puts("LCD Initialized\n");
   console_puts("Should have a checker pattern, press any key to proceed\n");
-  msleep(2000);
+  msleep(SLEEP_TIME);
   /*	(void) console_getc(1); */
-  gfx_init(lcd_draw_pixel, 240, 320);
+  gfx_init(lcd_draw_pixel, LCD_WIDTH, LCD_HEIGHT);
   gfx_fillScreen(LCD_GREY);
   gfx_fillRoundRect(10, 10, 220, 220, 5, LCD_WHITE);
   gfx_drawRoundRect(10, 10, 220, 220, 5, LCD_RED);
@@ -80,13 +82,13 @@ int main(void) {
   lcd_show_frame();
   console_puts("Now it has a bit of structured graphics.\n");
   console_puts("Press a key for some simple animation.\n");
-  msleep(2000);
+  msleep(SLEEP_TIME);
   /*	(void) console_getc(1); */
   gfx_setTextColor(LCD_YELLOW, LCD_BLACK);
   gfx_setTextSize(3);
-  p1 = 0;
-  p2 = 45;
-  p3 = 90;
+  planet_1 = 0;
+  planet_2 = 45;
+  planet_3 = 90;
   while (1) {
     gfx_fillScreen(LCD_BLACK);
     gfx_setCursor(15, 36);
@@ -96,15 +98,17 @@ int main(void) {
     gfx_drawCircle(120, 160, 75, LCD_GREY);
     gfx_drawCircle(120, 160, 100, LCD_GREY);
 
-    gfx_fillCircle(120 + (sin(d2r(p1)) * 55), 160 + (cos(d2r(p1)) * 55), 5,
-                   LCD_RED);
-    gfx_fillCircle(120 + (sin(d2r(p2)) * 75), 160 + (cos(d2r(p2)) * 75), 10,
+    gfx_fillCircle(120 + (sin(degrees_to_radians(planet_1)) * 55),
+                   160 + (cos(degrees_to_radians(planet_1)) * 55), 5, LCD_RED);
+    gfx_fillCircle(120 + (sin(degrees_to_radians(planet_2)) * 75),
+                   160 + (cos(degrees_to_radians(planet_2)) * 75), 10,
                    LCD_WHITE);
-    gfx_fillCircle(120 + (sin(d2r(p3)) * 100), 160 + (cos(d2r(p3)) * 100), 8,
+    gfx_fillCircle(120 + (sin(degrees_to_radians(planet_3)) * 100),
+                   160 + (cos(degrees_to_radians(planet_3)) * 100), 8,
                    LCD_BLUE);
-    p1 = (p1 + 3) % 360;
-    p2 = (p2 + 2) % 360;
-    p3 = (p3 + 1) % 360;
+    planet_1 = (planet_1 + 3) % 360;
+    planet_2 = (planet_2 + 2) % 360;
+    planet_3 = (planet_3 + 1) % 360;
     lcd_show_frame();
   }
 }
