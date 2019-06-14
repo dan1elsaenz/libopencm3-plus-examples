@@ -52,14 +52,16 @@ void clock_setup(void) {
 void tft_init(void) {
   i2c_init();
 
-  tft_turn_clock_control(false);
-  tft_touchscreen_enable_controller(false);
+  tft_enable_clocks(false);
+  tft_touchscreen_enable_controller_control(false);
 
-  tft_touchscreen_apply_configuration();
-  tft_set_fifo_level_interrupt();
+  tft_touchscreen_configure_controller_control(TSC_XYZ_AXIS, TRACK_8);
+  tft_touchscreen_apply_controller_configuration(MICRO_S_500_SET, MICRO_S_500_D,
+                                                 SAMPLE_2);
+  tft_set_fifo_level_interrupt(0x1);
 
-  tft_touchscreen_enable_controller(true);
-  tft_turn_clock_control(true);
+  tft_touchscreen_enable_controller_control(true);
+  tft_enable_clocks(true);
 }
 
 int main(void) {
