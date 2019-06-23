@@ -33,6 +33,8 @@
 #include <libopencm3-plus/stm32f429idiscovery/lcd-spi.h>
 #include <libopencm3-plus/stm32f429idiscovery/sdram.h>
 
+#define CONSOLE_BAUD_RATE 115200
+
 void clock_setup(void) {
   const uint32_t one_milisecond_rate = 168000;
   /* Base board frequency, set to 168Mhz */
@@ -49,7 +51,7 @@ void clock_setup(void) {
 
 int main(void) {
   clock_setup();
-  console_setup(115200);
+  console_setup(CONSOLE_BAUD_RATE);
   sdram_init();
   lcd_spi_init();
   tft_setup();
