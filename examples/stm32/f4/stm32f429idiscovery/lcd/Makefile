@@ -17,7 +17,7 @@
 ## along with this library.  If not, see <http://www.gnu.org/licenses/>.
 ##
 
-BINARY = check-touch-screen-config
+BINARY = draw_points
 
 OOCD_INTERFACE = stlink-v2-1
 

@@ -20,6 +20,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <libopencm3/cm3/systick.h>
 #include <libopencm3/stm32/gpio.h>
@@ -32,15 +33,19 @@
 #include <libopencm3-plus/stm32f429idiscovery/lcd-serial-touch.h>
 #include <libopencm3-plus/stm32f429idiscovery/lcd-spi.h>
 #include <libopencm3-plus/stm32f429idiscovery/sdram.h>
+#include <libopencm3-plus/utils/misc.h>
+
+#define CONSOLE_BAUD_RATE 115200
 
 void tft_init(void);
 
 void clock_setup(void) {
-  const uint32_t one_milisecond_rate = 168000;
   /* Base board frequency, set to 168Mhz */
   rcc_clock_setup_hse_3v3(&rcc_hse_8mhz_3v3[RCC_CLOCK_3V3_168MHZ]);
 
   /* clock rate / 168000 to get 1mS interrupt rate */
+  const uint32_t one_milisecond_rate = 168000;
+
   systick_set_reload(one_milisecond_rate);
   systick_set_clocksource(STK_CSR_CLKSOURCE_AHB);
   systick_counter_enable();
@@ -49,56 +54,42 @@ void clock_setup(void) {
   systick_interrupt_enable();
 }
 
-void tft_init(void) {
-  i2c_init();
-
-  tft_enable_clocks(false);
-  tft_touchscreen_enable_controller_control(false);
-
-  tft_touchscreen_configure_controller_control(TSC_XYZ_AXIS, TRACK_8);
-  tft_touchscreen_apply_controller_configuration(MICRO_S_500_SET, MICRO_S_500_D,
-                                                 SAMPLE_2);
-  tft_set_fifo_level_interrupt(0x1);
-
-  tft_touchscreen_enable_controller_control(true);
-  tft_enable_clocks(true);
-}
-
 int main(void) {
   clock_setup();
-  console_setup(115200);
+  console_setup(CONSOLE_BAUD_RATE);
   sdram_init();
   lcd_spi_init();
-  tft_init();
+  tft_setup();
 
   gfx_init(lcd_draw_pixel, 240, 320);
   gfx_setTextColor(LCD_YELLOW, LCD_BLACK);
   gfx_setTextSize(LCD_TEXT_MIN_SIZE);
   lcd_show_frame();
 
-  int x = 1;
-  int y = 1;
-  uint8_t fifo_state = 0;
-  uint16_t datax = 0;
-  uint16_t datay = 0;
-  uint16_t dataz = 0;
-  char sData[64];
+  // clocks
+  const uint8_t clock_register_value = tft_get_clock_status();
+  // controller control config
+  const uint8_t controller_control_config = tft_get_controller_control_status();
+  // controller config
+  const uint8_t controller_configuration =
+      tft_get_touchscreen_controller_configuration();
+  // fifo config
+  const uint8_t fifo_interrupt_level = tft_get_fifo_interrupt_level();
 
+  char string_data[120];
+  const uint8_t WAIT_TIME_TO_SHOW_CONFIG = 100;
   while (true) {
     gfx_fillScreen(LCD_BLACK);
-    gfx_setCursor((int)(LCD_WIDTH / 4), (int)(LCD_HEIGHT / 2));
+    gfx_setCursor((int)(1), (int)(LCD_HEIGHT / 2));
 
-    fifo_state = tft_get_fifo_size();
+    sprintf(string_data,
+            "cfg(expect val) : hex val\nclock(0x00) : %X\ncontrol(0x21) : %X "
+            "\nconfig(0x5A) : %X \nfifo interr(0x1): %d",
+            clock_register_value, controller_control_config,
+            controller_configuration, fifo_interrupt_level);
 
-    while (fifo_state > 0) {
-      tft_get_coord_data_access(X_COORD, &datax);
-      tft_get_coord_data_access(Y_COORD, &datay);
-      tft_get_coord_data_access(Z_COORD, &dataz);
-      fifo_state = tft_get_fifo_size();
-    }
-    tft_convert_touch_coord_to_lcd_coord(datax, datay, &x, &y);
-    sprintf(sData, "%u %u", x, y);
-    gfx_puts(sData);
+    gfx_puts(string_data);
     lcd_show_frame();
+    wait(WAIT_TIME_TO_SHOW_CONFIG);
   }
 }
