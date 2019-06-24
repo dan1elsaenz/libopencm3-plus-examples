@@ -33,6 +33,8 @@
 #include <libopencm3-plus/stm32f429idiscovery/lcd-spi.h>
 #include <libopencm3-plus/stm32f429idiscovery/sdram.h>
 
+#define CONSOLE_BAUD_RATE 115200
+
 void tft_init(void);
 
 void clock_setup(void) {
@@ -66,7 +68,7 @@ void tft_init(void) {
 
 int main(void) {
   clock_setup();
-  console_setup(115200);
+  console_setup(CONSOLE_BAUD_RATE);
   sdram_init();
   lcd_spi_init();
   tft_init();
@@ -78,7 +80,7 @@ int main(void) {
 
   int x = 1;
   int y = 1;
-  uint8_t fifo_state = 0;
+  uint8_t current_fifo_size = 0;
   uint16_t datax = 0;
   uint16_t datay = 0;
   uint16_t dataz = 0;
@@ -88,13 +90,13 @@ int main(void) {
     gfx_fillScreen(LCD_BLACK);
     gfx_setCursor((int)(LCD_WIDTH / 4), (int)(LCD_HEIGHT / 2));
 
-    fifo_state = tft_get_fifo_size();
+    current_fifo_size = tft_get_fifo_size();
 
-    while (fifo_state > 0) {
+    while (current_fifo_size > 0) {
       tft_get_coord_data_access(X_COORD, &datax);
       tft_get_coord_data_access(Y_COORD, &datay);
       tft_get_coord_data_access(Z_COORD, &dataz);
-      fifo_state = tft_get_fifo_size();
+      current_fifo_size = tft_get_fifo_size();
     }
     tft_convert_touch_coord_to_lcd_coord(datax, datay, &x, &y);
     sprintf(sData, "%u %u", x, y);
