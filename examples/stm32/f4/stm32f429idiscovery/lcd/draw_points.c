@@ -68,7 +68,7 @@ int main(void) {
   int y_pos = 1;
   int x_positions[ARRAY_SIZE];
   int y_positions[ARRAY_SIZE];
-  uint8_t fifo_state = 0;
+  uint8_t current_fifo_size = 0;
   uint16_t data_x = 0;
   uint16_t data_y = 0;
   uint16_t data_z = 0;
@@ -81,13 +81,13 @@ int main(void) {
   uint8_t array_index = 0;
   while (true) {
     gfx_fillScreen(LCD_BLACK);
-    fifo_state = tft_get_fifo_size();
+    current_fifo_size = tft_get_fifo_size();
 
-    while (fifo_state > 0) {
+    while (current_fifo_size > 0) {
       tft_get_coord_data_access(X_COORD, &data_x);
       tft_get_coord_data_access(Y_COORD, &data_y);
       tft_get_coord_data_access(Z_COORD, &data_z);
-      fifo_state = tft_get_fifo_size();
+      current_fifo_size = tft_get_fifo_size();
     }
     if (tft_is_touch_detected()) {
       tft_convert_touch_coord_to_lcd_coord(data_x, data_y, &x_pos, &y_pos);
