@@ -29,62 +29,38 @@
 #include <libopencm3/stm32/l4/rcc.h>
 
 #include <libopencm3-plus/stm32l476discovery/lcd.h>
+#include <libopencm3-plus/utils/misc.h>
 
 #define LED_GREEN_PORT GPIOE
 #define LED_GREEN_PIN GPIO8
 #define LED_RED_PORT GPIOB
 #define LED_RED_PIN GPIO2
 
-void gpio_setup(void);
+void leds_setup(void);
 
-static void clock_setup(void) {
-  /* FIXME - this should eventually become a clock struct helper setup */
-  rcc_osc_on(RCC_HSI16);
-
-  flash_prefetch_enable();
-  flash_set_ws(4);
-  flash_dcache_enable();
-  flash_icache_enable();
-  /* 16MHz / 4 = > 4 * 40 = 160MHz VCO => 80MHz main pll  */
-  rcc_set_main_pll(RCC_PLLCFGR_PLLSRC_HSI16, 4, 40, 0, 0,
-                   RCC_PLLCFGR_PLLR_DIV2);
-  rcc_osc_on(RCC_PLL);
-  rcc_set_sysclk_source(RCC_CFGR_SW_PLL); /* careful with the param here! */
-  rcc_wait_for_sysclk_status(RCC_PLL);
-  /* FIXME - eventually handled internally */
-  rcc_ahb_frequency = 80e6;
-  rcc_apb1_frequency = 80e6;
-  rcc_apb2_frequency = 80e6;
-}
-
-void gpio_setup(void) {
+void leds_setup(void) {
   rcc_periph_clock_enable(RCC_GPIOB);
   rcc_periph_clock_enable(RCC_GPIOE);
   gpio_mode_setup(LED_GREEN_PORT, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE,
                   LED_GREEN_PIN);
-  /* red led for buttons */
   gpio_mode_setup(LED_RED_PORT, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, LED_RED_PIN);
 }
 
 int main(void) {
-  clock_setup();
-  gpio_setup();
-  lcd_segmented_init();
+  lcd_init();
+  leds_setup();
 
   // leds
   gpio_set(LED_RED_PORT, LED_RED_PIN);
   gpio_clear(LED_GREEN_PORT, LED_GREEN_PIN);
 
-  const uint8_t N_SEG = 6;
-  const uint8_t NIBBLE = 5;
   while (true) {
-    print_nibble_for_com0(N_SEG, NIBBLE);
-
     gpio_toggle(LED_RED_PORT, LED_RED_PIN);
     gpio_toggle(LED_GREEN_PORT, LED_GREEN_PIN);
-    for (int i = 0; i < 4000; i++) {
+    for (int i = 0; i < 400000; i++) {
       __asm__("NOP");
     }
+    write_char_to_lcd_ram(POS_6, 'A');
   }
   return 0;
 }
