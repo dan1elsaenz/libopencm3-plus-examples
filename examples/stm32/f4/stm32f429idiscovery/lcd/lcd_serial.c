@@ -38,7 +38,7 @@
 void clock_setup(void) {
   const uint32_t one_milisecond_rate = 168000;
   /* Base board frequency, set to 168Mhz */
-  rcc_clock_setup_hse_3v3(&rcc_hse_8mhz_3v3[RCC_CLOCK_3V3_168MHZ]);
+  rcc_clock_setup_pll(&rcc_hse_8mhz_3v3[RCC_CLOCK_3V3_168MHZ]);
 
   /* clock rate / 168000 to get 1mS interrupt rate */
   systick_set_reload(one_milisecond_rate);

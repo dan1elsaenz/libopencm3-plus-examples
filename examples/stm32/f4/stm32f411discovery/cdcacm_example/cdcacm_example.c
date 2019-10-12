@@ -34,7 +34,7 @@ void leds_init(void) {
 }
 
 void system_init(void) {
-  rcc_clock_setup_hse_3v3(&rcc_hse_8mhz_3v3[RCC_CLOCK_3V3_84MHZ]);
+  rcc_clock_setup_pll(&rcc_hse_8mhz_3v3[RCC_CLOCK_3V3_84MHZ]);
   leds_init();
   cdcacm_init();
 }

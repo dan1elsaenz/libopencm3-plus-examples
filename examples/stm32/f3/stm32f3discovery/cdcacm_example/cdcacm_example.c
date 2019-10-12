@@ -34,7 +34,7 @@ void leds_init(void) {
 }
 
 void system_init(void) {
-  rcc_clock_setup_hsi(&rcc_hsi_8mhz[RCC_CLOCK_48MHZ]);
+  rcc_clock_setup_hsi(&rcc_hsi_configs[RCC_CLOCK_HSI_48MHZ]);
   leds_init();
   cdcacm_init();
 }
