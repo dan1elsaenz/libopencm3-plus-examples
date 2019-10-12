@@ -255,13 +255,13 @@ styleclean: $(STYLECHECKFILES:=.styleclean)
 
 ifeq ($(BMP_PORT),)
 ifeq ($(OOCD_FILE),)
-%.flash: %.elf
+%.flash: %.hex
 	@printf "  FLASH   $<\n"
-	(echo "halt; program $(realpath $(*).elf) verify reset" | nc -4 localhost 4444 2>/dev/null) || \
-		$(OOCD) -f interface/$(OOCD_INTERFACE).cfg \
-		-f target/$(OOCD_TARGET).cfg \
-		-c "program $(*).elf verify reset exit" \
-		$(NULL)
+	(echo "halt; program $(realpath $(*).hex) verify reset" | nc -4 localhost 4444 2>/dev/null) || \
+	$(OOCD) -f interface/$(OOCD_INTERFACE).cfg \
+                -f target/$(OOCD_TARGET).cfg \
+                -c "program $(*).hex verify reset exit" \
+                $(NULL)
 else
 %.flash: %.elf
 	@printf "  FLASH   $<\n"

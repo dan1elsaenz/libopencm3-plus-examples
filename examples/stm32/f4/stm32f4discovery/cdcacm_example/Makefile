@@ -19,7 +19,7 @@
 
 BINARY = cdcacm_example
 
-OOCD_INTERFACE = stlink-v2
+OOCD_INTERFACE = stlink-v2-1
 
 LDSCRIPT = ../../../../../libopencm3-plus/lib/libopencm3_plus_stm32f4discovery.ld
 

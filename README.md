@@ -1,4 +1,9 @@
-libopencm3-plus-examples
-========================
+# Libopencm3-plus Examples
 
-Libopencm3-plus examples.
+Basic examples of Libopencm3-plus usage.
+
+Tested devices:
+
+* STM32F3 Discovery Kit
+* STM32F4 Discovery Kit, version: STM32F407G-DISC1
+* STM32F429 Discovery Kit, version: STM32F429I-DISC1
