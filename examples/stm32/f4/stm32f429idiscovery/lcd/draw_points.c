@@ -62,7 +62,7 @@ int main(void) {
   lcd_show_frame();
 
   const uint8_t CIRCLE_RADIUS = 5;
-  const uint8_t ARRAY_SIZE = 50;
+  const uint8_t ARRAY_SIZE = 5;
 
   int x_pos = 1;
   int y_pos = 1;
@@ -95,8 +95,13 @@ int main(void) {
       y_positions[array_index] = y_pos;
       array_index = array_index > ARRAY_SIZE ? 0 : array_index + 1;
     }
+
     for (int i = 0; i < ARRAY_SIZE; ++i) {
-      gfx_fillCircle(x_positions[i], y_positions[i], CIRCLE_RADIUS, LCD_YELLOW);
+      if(!(x_positions[i] == 0 && y_positions[i] == 0)) {
+        gfx_drawCircle(x_positions[i], y_positions[i], CIRCLE_RADIUS+5, LCD_YELLOW);
+        gfx_drawCircle(x_positions[i], y_positions[i], CIRCLE_RADIUS+6, LCD_YELLOW);
+        gfx_fillCircle(x_positions[i], y_positions[i], CIRCLE_RADIUS, LCD_YELLOW);
+      }    
     }
     lcd_show_frame();
   }
