@@ -23,6 +23,6 @@ OOCD_INTERFACE = stlink-v2-1
 
 LDSCRIPT = ../../../../../libopencm3-plus/lib/libopencm3_plus_steval-ids001v4m.ld
 
-OBJS	+= spirit1.o
+OBJS	+= spirit1.o steval-ids001v4m.o
 
 include ../../Makefile.include

@@ -19,7 +19,6 @@
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/usart.h>
-#include <libopencm3/stm32/spi.h>
 #include <stdio.h>
 #include <errno.h>
 #include <libopencm3-plus/newlib/syscall.h>
@@ -29,18 +28,11 @@
 #include <stdbool.h>
 
 #include "usart_spsgrf-868.h"
+#include "steval-ids001v4m.h"
+#include "spirit1.h"
 
 
-#define SPSGRF_CS_PORT GPIOB
-#define SPSGRF_CS GPIO12
-#define SPSGRF_SDN_PORT GPIOC
-#define SPSGRF_SDN GPIO13
 #define USART_BAUDRATE 115200
-
-#define SPI_READ 0x0100
-#define SPI_WRITE 0x0000
-
-
 
 
 const struct rcc_clock_scale rcc_clock_config_32mhz = {
@@ -59,55 +51,6 @@ const struct rcc_clock_scale rcc_clock_config_32mhz = {
 };
 
 
-static void spi_setup(void) {
-
-  /* Pin port B and SPI2 clock */
-  rcc_periph_clock_enable(RCC_GPIOB);
-  rcc_periph_clock_enable(RCC_SPI2);
-
-  /* Alternate Function 5 for SPI on port B */
-  gpio_set_af(GPIOB, GPIO_AF5,
-              GPIO13 |
-              GPIO14 |
-              GPIO15 );
-  /* AF for pins 13(SCK), 14(MISO), 15(MOSI) on port B */
-  gpio_mode_setup(GPIOB, GPIO_MODE_AF,
-                  GPIO_PUPD_NONE,
-                  GPIO13 |
-                  GPIO14 |
-                  GPIO15 );
-  /* Output mode for pin 12 (spsgrf-868 SPI_CS connection) */
-  gpio_mode_setup(SPSGRF_CS_PORT, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE,
-          SPSGRF_CS);
-
-  /* Reset SPI, SPI_CR1 register cleared, SPI is disabled */
-  spi_reset(SPI2);
-
-  /* Set up SPI in Master mode with:
-   * Clock baud rate: 1/256 of peripheral clock frequency
-   (125kHz)
-   * Clock polarity: Idle LOW
-   * Clock phase: Data valid on 1nd clock pulse
-   * Data frame format: 16-bit
-   * Frame format: MSB First
-   */
-  spi_init_master(SPI2, SPI_CR1_BAUDRATE_FPCLK_DIV_256, SPI_CR1_CPOL_CLK_TO_0_WHEN_IDLE,
-                  SPI_CR1_CPHA_CLK_TRANSITION_1, SPI_CR1_DFF_16BIT, SPI_CR1_MSBFIRST);
-
-  /*
-   * Set NSS management to software.
-   *
-   * Note:
-   * Setting nss high is very important, even if we are controlling the GPIO
-   * ourselves this bit needs to be at least set to 1, otherwise the spi
-   * peripheral will not send any data out.
-   */
-  spi_enable_software_slave_management(SPI2);
-  spi_set_nss_high(SPI2);
-
-  /* Enable SPI1 periph. */
-  spi_enable(SPI2);
-}
 
 
 static void usart_setup(void)
@@ -143,15 +86,6 @@ static void leds_init(void) {
 
 }
 
-static void spsgrf868_setup(void) {
-  rcc_periph_clock_enable(RCC_GPIOC);
-
-  gpio_set(SPSGRF_SDN_PORT, SPSGRF_SDN);
-	gpio_mode_setup(SPSGRF_SDN_PORT, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, SPSGRF_SDN);
-
-  gpio_clear(SPSGRF_SDN_PORT, SPSGRF_SDN);
-    wait(10);
-}
 
 int _write(int file, char *ptr, int len)
 {
@@ -184,28 +118,18 @@ static void system_init(void) {
 int main(void)
 {
 
-  uint16_t rx_value = 0x42;
+  uint8_t rx_values[2] = {0x00, 0x00};
+  uint16_t status = 0x00;
 
   system_init();
 
   while (1) {
     /* LED on/off */
-    usart_send_blocking(USART2, 'a');
+    status = spsgrf_read(0xF0, rx_values, 2);
 
-
-    gpio_clear(SPSGRF_CS_PORT, SPSGRF_CS);
-    spi_write(SPI2, (SPI_READ | 0xF1));
-    rx_value = spi_read(SPI2);
-    usart_send_blocking(USART2, rx_value >> 8);
-    usart_send_blocking(USART2, (0x00FF & rx_value));
-    spi_write(SPI2, 0x0000);
-    rx_value=0;
-    rx_value = spi_read(SPI2);
-    usart_send_blocking(USART2, rx_value >> 8);
-    usart_send_blocking(USART2, (0x00FF & rx_value));
-    gpio_set(SPSGRF_CS_PORT, SPSGRF_CS);
-
-    printf("A\n");
+    printf("Status:_0x%02x\n", status);
+    printf("RX values:_0x%02x\n", rx_values[0]);
+    printf("RX values:_0x%02x\n", rx_values[1]);
 
     gpio_toggle(LRED);
     wait(10);
