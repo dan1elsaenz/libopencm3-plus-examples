@@ -27,6 +27,8 @@
 #define SPSGRF_SDN GPIO13
 #define SPSGRF_SPI_PORT GPIOB
 #define SPSGRF_SPI SPI2
+#define SPSGRF_CS_PORT GPIOB
+#define SPSGRF_CS GPIO12
 
 uint16_t spsgrf_write(uint8_t reg_addr, uint8_t *wr_data, uint8_t count) {
   //Write to spirit1 register(s). Multiple write if count>1

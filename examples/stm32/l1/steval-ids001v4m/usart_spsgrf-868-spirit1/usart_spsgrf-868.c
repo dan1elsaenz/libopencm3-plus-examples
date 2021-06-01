@@ -18,7 +18,6 @@
 
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
-#include <libopencm3/stm32/spi.h>
 #include <libopencm3/stm32/usart.h>
 #include <stdio.h>
 #include <errno.h>
@@ -33,7 +32,7 @@
 #include "spirit1.h"
 
 
-#define USART_BAUDRATE 115200*4
+#define USART_BAUDRATE 115200
 
 
 const struct rcc_clock_scale rcc_clock_config_32mhz = {
@@ -156,13 +155,13 @@ int main(void)
     /* nanowait(10); */
     /* gpio_set(GPIOA, GPIO9); */
 
-    usart_send_blocking(USART2, status >> 8);
-    usart_send_blocking(USART2, status);
-    usart_send_blocking(USART2, rx_values[1]);
-    usart_send_blocking(USART2, rx_values[0]);
+    //usart_send_blocking(USART2, status >> 8);
+    //usart_send_blocking(USART2, status);
+    //usart_send_blocking(USART2, rx_values[1]);
+    //usart_send_blocking(USART2, rx_values[0]);
 
-    //printf("Status:_0x%04x\n", status);
-    //printf("RX_values:_0x%02x_0x%02x\n", rx_values[0], rx_values[1]);
+    printf("Status: 0x%04x\n", status);
+    printf("RX values: 0x%02x 0x%02x\n", rx_values[0], rx_values[1]);
 
     gpio_toggle(LRED);
     wait(2);
