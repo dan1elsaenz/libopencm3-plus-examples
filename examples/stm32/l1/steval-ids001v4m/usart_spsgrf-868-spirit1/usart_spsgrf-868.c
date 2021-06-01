@@ -18,6 +18,7 @@
 
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
+#include <libopencm3/stm32/spi.h>
 #include <libopencm3/stm32/usart.h>
 #include <stdio.h>
 #include <errno.h>
@@ -32,7 +33,7 @@
 #include "spirit1.h"
 
 
-#define USART_BAUDRATE 115200
+#define USART_BAUDRATE 115200*4
 
 
 const struct rcc_clock_scale rcc_clock_config_32mhz = {
@@ -63,6 +64,12 @@ static void usart_setup(void)
     gpio_set_af(GPIOA, GPIO_AF7, GPIO2 | GPIO3);
 	gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO2 | GPIO3);
 
+    gpio_set_output_options(GPIOA,
+                            GPIO_OTYPE_PP,
+                            GPIO_OSPEED_40MHZ,
+                            GPIO2 | GPIO3);
+
+
 	/* Setup UART parameters. */
 	usart_set_baudrate(USART2, USART_BAUDRATE);
 	usart_set_databits(USART2, 8);
@@ -83,6 +90,13 @@ static void leds_init(void) {
 	/* GPIO0 y 1 for LEDs (RED and ORANGE respectively) */
 	gpio_mode_setup(LEDS_PORT, GPIO_MODE_OUTPUT,
                     GPIO_PUPD_NONE, GPIO0 | GPIO1);
+
+	rcc_periph_clock_enable(RCC_GPIOA);
+
+	/* GPIO0 y 1 for LEDs (RED and ORANGE respectively) */
+	gpio_mode_setup(GPIOA, GPIO_MODE_OUTPUT,
+                    GPIO_PUPD_NONE, GPIO9);
+    gpio_set(GPIOA, GPIO9);
 
 }
 
@@ -115,26 +129,45 @@ static void system_init(void) {
 
 }
 
+/* void nanowait(int x) { */
+/*   volatile int tmp; */
+/*   for(int i=0; i<x; i++) { */
+/*     __asm__("nop"); */
+/*   } */
+/* } */
+
 int main(void)
 {
 
-  uint8_t rx_values[2] = {0x00, 0x00};
+  uint8_t rx_values[2];
   uint16_t status = 0x00;
 
   system_init();
 
   while (1) {
-    /* LED on/off */
     status = spsgrf_read(0xF0, rx_values, 2);
 
-    printf("Status:_0x%02x\n", status);
-    printf("RX values:_0x%02x\n", rx_values[0]);
-    printf("RX values:_0x%02x\n", rx_values[1]);
+    /* EEPROM test code */
+    /* gpio_clear(GPIOA, GPIO9); */
+    /* nanowait(10); */
+    /* spi_xfer2(SPI2, 0b10000011); */
+    /* status = spi_xfer2(SPI2, 0x00) << 8; */
+    /* status |= spi_xfer2(SPI2, 0x00); */
+    /* nanowait(10); */
+    /* gpio_set(GPIOA, GPIO9); */
+
+    usart_send_blocking(USART2, status >> 8);
+    usart_send_blocking(USART2, status);
+    usart_send_blocking(USART2, rx_values[1]);
+    usart_send_blocking(USART2, rx_values[0]);
+
+    //printf("Status:_0x%04x\n", status);
+    //printf("RX_values:_0x%02x_0x%02x\n", rx_values[0], rx_values[1]);
 
     gpio_toggle(LRED);
-    wait(10);
+    wait(2);
     gpio_toggle(LORANGE);
-    wait(10);
+    wait(2);
   }
 
 }

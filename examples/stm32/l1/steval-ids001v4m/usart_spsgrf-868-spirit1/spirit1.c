@@ -16,34 +16,65 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <libopencm3/stm32/spi.h>
 #include <libopencm3/stm32/gpio.h>
+#include <libopencm3/stm32/spi.h>
 #include <libopencm3-plus/utils/misc.h>
 #include "spirit1.h"
-
 
 #define SP1_READ 0x01
 #define SP1_WRITE 0x00
 #define SP1_CMD 0x80
 
+// Commands
+#define SP1_CMD_STANDBY 0x63
+#define SP1_CMD_SLEEP 0x64
+#define SP1_CMD_SRES 0x70
+#define SP1_CMD_FLUSHRXFIFO 0x71
+
+uint16_t my_spi_xfer(uint32_t spi, uint16_t data)
+{
+  spi_write(spi, data);
+  /* Wait for read data ready. */
+  while (!(SPI_SR(spi) & SPI_SR_RXNE));
+  /* Wait for transmit finished. */
+  while (!(SPI_SR(spi) & SPI_SR_TXE));
+  return(SPI_DR(spi));
+}
+
+
 uint16_t sp1_write(uint8_t reg_addr, uint8_t *wr_data, uint8_t count,
-                        uint32_t gpioport, uint16_t gpios) {
+                   uint32_t spiport, uint32_t gpioport, uint16_t gpios) {
   uint16_t status = 0x00;
   gpio_clear(gpioport, gpios);
-  status = (spi_xfer(SPI2, SP1_WRITE) << 8);
-  status |= spi_xfer(SPI2, reg_addr);
+  status = (my_spi_xfer(spiport, SP1_WRITE) << 8);
+  status |= my_spi_xfer(spiport, reg_addr);
+  for (int i=0; i<count; i++) {
+     my_spi_xfer(spiport, *(wr_data+i));
+  }
   gpio_set(gpioport, gpios);
   return(status);
 }
 
-uint16_t sp1_read(uint8_t reg_addr, uint8_t *rd_data, uint8_t count,
+uint16_t sp1_cmd(uint8_t cmd, uint32_t spiport,
                         uint32_t gpioport, uint16_t gpios) {
   uint16_t status = 0x00;
   gpio_clear(gpioport, gpios);
-  status = (spi_xfer(SPI2, SP1_READ) << 8);
-  status |= spi_xfer(SPI2, reg_addr);
+  status = (my_spi_xfer(spiport, SP1_CMD) << 8);
+  status |= my_spi_xfer(spiport, cmd);
+  gpio_set(gpioport, gpios);
+  return(status);
+}
+
+
+
+uint16_t sp1_read(uint8_t reg_addr, uint8_t *rd_data, uint8_t count,
+                  uint32_t spiport, uint32_t gpioport, uint16_t gpios) {
+  uint16_t status = 0x00;
+  gpio_clear(gpioport, gpios);
+  status = (my_spi_xfer(spiport, SP1_READ) << 8);
+  status |= my_spi_xfer(spiport, reg_addr);
   for (int i=0; i<count; i++) {
-    *(rd_data+i) = spi_xfer(SPI2, SP1_READ);
+    *(rd_data+i) = my_spi_xfer(spiport, 0x00);
   }
   gpio_set(gpioport, gpios);
   return(status);
@@ -69,7 +100,7 @@ void sp1_spi_setup(uint32_t spiport) {
    * Data frame format: 8-bit
    * Frame format: MSB First
    */
-  spi_init_master(spiport, SPI_CR1_BAUDRATE_FPCLK_DIV_32, SPI_CR1_CPOL_CLK_TO_0_WHEN_IDLE,
+  spi_init_master(spiport, SPI_CR1_BAUDRATE_FPCLK_DIV_64, SPI_CR1_CPOL_CLK_TO_0_WHEN_IDLE,
                   SPI_CR1_CPHA_CLK_TRANSITION_1, SPI_CR1_DFF_8BIT, SPI_CR1_MSBFIRST);
 
   /*
