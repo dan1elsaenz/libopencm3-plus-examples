@@ -18,11 +18,13 @@
 
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
+#include <libopencm3/stm32/usart.h>
 #include <libopencm3/stm32/timer.h>
 #include <libopencm3/stm32/syscfg.h>
 #include <libopencm3-plus/newlib/syscall.h>
 #include "main.h"
 #include <libopencm3-plus/newlib/devices/cdcacm.h>
+#include <libopencm3-plus/newlib/devices/usart.h>
 #include <libopencm3-plus/newlib/devices/null.h>
 #include <stdio.h>
 #include <libopencm3-plus/utils/misc.h>
@@ -65,9 +67,11 @@ void system_init(void) {
   SYSCFG_PMC |= 0x0001;
   leds_init();
   cdcacm_init();
-  //devoptab_list[0] = &dotab_null;
-  //devoptab_list[1] = &dotab_null;
-  //devoptab_list[2] = &dotab_null;
+  devoptab_list[0] = &dotab_usart;
+  devoptab_list[1] = &dotab_usart;
+  devoptab_list[2] = &dotab_usart;
+  usart_port=USART2;
+  usart_init();
 }
 
 int main(void)
