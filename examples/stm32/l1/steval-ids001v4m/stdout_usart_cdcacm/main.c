@@ -64,12 +64,15 @@ void system_init(void) {
   /* CPU/uC general setup */
   rcc_clock_setup_pll(&rcc_clock_config_32mhz);
   rcc_periph_clock_enable(RCC_SYSCFG);
-  SYSCFG_PMC |= 0x0001;
+  SYSCFG_PMC |= 0x0001; //USB pin activation
   leds_init();
-  cdcacm_init();
   devoptab_list[0] = &dotab_usart;
   devoptab_list[1] = &dotab_usart;
   devoptab_list[2] = &dotab_usart;
+  /* devoptab_list[0] = &dotab_cdcacm; */
+  /* devoptab_list[1] = &dotab_cdcacm; */
+  /* devoptab_list[2] = &dotab_cdcacm; */
+  cdcacm_init();
   usart_port=USART2;
   usart_init();
 }
