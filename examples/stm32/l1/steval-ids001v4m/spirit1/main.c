@@ -28,6 +28,7 @@
 #include <libopencm3-plus/utils/misc.h>
 #include <libopencm3-plus/steval-ids001v4m/leds.h>
 #include <stdio.h>
+#include <stdlib.h>
 //#include <errno.h>
 #include <limits.h>
 #include <stdbool.h>
@@ -84,12 +85,12 @@ void system_init(void) {
   printled2(2, 10, LORANGE);
 
   /* uC + steval-ids001v4m setup */
-  /* devoptab_list[0] = &dotab_usart; */
-  /* devoptab_list[1] = &dotab_usart; */
-  /* devoptab_list[2] = &dotab_usart; */
-  devoptab_list[0] = &dotab_cdcacm;
-  devoptab_list[1] = &dotab_cdcacm;
-  devoptab_list[2] = &dotab_cdcacm;
+  devoptab_list[0] = &dotab_usart;
+  devoptab_list[1] = &dotab_usart;
+  devoptab_list[2] = &dotab_usart;
+  /* devoptab_list[0] = &dotab_cdcacm; */
+  /* devoptab_list[1] = &dotab_cdcacm; */
+  /* devoptab_list[2] = &dotab_cdcacm; */
   cdcacm_init();
   usart_port=USART2;
   usart_init();
@@ -111,8 +112,8 @@ void init_console(void) {
   setvbuf(stdout,NULL,_IONBF,0); // Sets stdin in unbuffered mode (normal for usart com)
 
    while (poll(stdin) > 0) {
-  printf("Cleaning stdin\n");
-   getc(stdin);
+     printf("Cleaning stdin\n");
+     getc(stdin);
   }
 }
 
@@ -162,13 +163,34 @@ char* get_state_str(uint8_t state) {
   }
 }
 
+#define MSG_SIZE 50
+#define CMD_SIZE 10
+#define RETURN_CHAR '\r'
+#define NULL_CHAR '\0'
+
+
+void read_serial(char *buffer) {
+  int input_position = 0;
+  int input_char_value = 0;
+
+  memset(buffer, 0, MSG_SIZE);
+  while (input_char_value != RETURN_CHAR) {
+    input_char_value = getc(stdin);
+    putc(input_char_value, stdout);
+    buffer[input_position] = input_char_value;
+    input_position++;
+  }
+  buffer[input_position] = NULL_CHAR;
+}
+
+
 int main(void)
 {
 
 
   system_init();
 
-  uint8_t rx_values[2];
+  uint8_t rx_values[20];
   uint16_t status = 0x00;
 
   init_console();
@@ -218,8 +240,43 @@ int main(void)
   printf(get_state_str(SP1_STATE(status)));
   printf("\n");
 
-  while (1) {
+  char my_input[MSG_SIZE];
+  char my_cmd[CMD_SIZE];
+  uint8_t sp1_reg;
+  int read_counts;
+  int len=0;
 
+  printf("Type your command: r/w/c reg_num readings\n");
+  printf("(r) read, (w) write, (c) cmd\n");
+  while (true) {
+    if (poll(stdin) > 0) {
+      read_serial(my_input);
+      sscanf(my_input, "%s", my_cmd);
+      printf("my cmd: %s\n", my_cmd);
+      switch(my_cmd[0]) {
+      case 'r':
+        printf("Enter register address to read and number of readings: reg_addr count \n");
+        read_serial(my_input);
+        sscanf(my_input, "0x%x %d", &sp1_reg, &read_counts);
+        printf("Reading: %x register, counts: %d\n", sp1_reg, read_counts);
+        status = spsgrf_read(sp1_reg, rx_values, read_counts);
+        for (int i=0; i<read_counts; i++) {
+          printf("Address: 0x%02x, Value: 0x%02x\n", sp1_reg, rx_values[i]);
+        }
+        break;
+      case 'w':
+        printf("Write\n");
+        break;
+      default:
+        goto endcmd;
+      }
+
+      printf("MC_STATE: 0x%04x, STATE: 0x%02x\n", status, SP1_STATE(status));
+      printf(get_state_str(SP1_STATE(status)));
+    endcmd:
+      printf("\n");
+      printf("(r) read, (w) write, (c) cmd ? \n");
+    }
     /* EEPROM test code */
     /* gpio_clear(GPIOA, GPIO9); */
     /* nanowait(10); */
@@ -236,7 +293,7 @@ int main(void)
 
     gpio_toggle(LRED);
     wait(2);
-    end_waiting();
+    //end_waiting();
     gpio_toggle(LORANGE);
     wait(2);
   }
