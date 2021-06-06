@@ -25,11 +25,10 @@
 #define SP1_WRITE 0x00
 #define SP1_CMD 0x80
 
-// Commands
-#define SP1_CMD_STANDBY 0x63
-#define SP1_CMD_SLEEP 0x64
-#define SP1_CMD_SRES 0x70
-#define SP1_CMD_FLUSHRXFIFO 0x71
+//TODO
+
+// Switch state function that waits until state changed really happened
+
 
 uint16_t my_spi_xfer(uint32_t spi, uint16_t data)
 {
@@ -74,7 +73,7 @@ uint16_t sp1_read(uint8_t reg_addr, uint8_t *rd_data, uint8_t count,
   status = (my_spi_xfer(spiport, SP1_READ) << 8);
   status |= my_spi_xfer(spiport, reg_addr);
   for (int i=0; i<count; i++) {
-    *(rd_data+i) = my_spi_xfer(spiport, 0x00);
+    *(rd_data+(count-1-i)) = my_spi_xfer(spiport, 0x00);
   }
   gpio_set(gpioport, gpios);
   return(status);

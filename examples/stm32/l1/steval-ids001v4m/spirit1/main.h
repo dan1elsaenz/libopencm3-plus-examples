@@ -16,4 +16,3 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-int _write(int file, char *ptr, int len);

@@ -17,12 +17,16 @@
 ## along with this library.  If not, see <http://www.gnu.org/licenses/>.
 ##
 
-BINARY = usart_spsgrf-868
+BINARY = main
 
 OOCD_INTERFACE = stlink-v2-1
 
-LDSCRIPT = ../../../../../libopencm3-plus/lib/libopencm3_plus_steval-ids001v4m.ld
+#LDSCRIPT = ../../../../../libopencm3-plus/lib/libopencm3_plus_steval-ids001v4m.ld
+LDSCRIPT = libopencm3_plus_steval-ids001v4m.ld
 
 OBJS	+= spirit1.o steval-ids001v4m.o
 
 include ../../Makefile.include
+
+dfu: bin
+	sudo dfu-util -d 1209:db42 -D $(BINARY).bin
