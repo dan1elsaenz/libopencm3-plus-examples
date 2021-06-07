@@ -81,19 +81,19 @@ void system_init(void) {
   SYSCFG_PMC |= 0x0001;
 
   leds_init();
-  printled2(2, 10, LRED);
-  printled2(2, 10, LORANGE);
+  //printled2(2, 10, LRED);
+  //printled2(2, 10, LORANGE);
 
   /* uC + steval-ids001v4m setup */
-  devoptab_list[0] = &dotab_usart;
-  devoptab_list[1] = &dotab_usart;
-  devoptab_list[2] = &dotab_usart;
-  /* devoptab_list[0] = &dotab_cdcacm; */
-  /* devoptab_list[1] = &dotab_cdcacm; */
-  /* devoptab_list[2] = &dotab_cdcacm; */
+  /* devoptab_list[0] = &dotab_usart; */
+  /* devoptab_list[1] = &dotab_usart; */
+  /* devoptab_list[2] = &dotab_usart; */
+  devoptab_list[0] = &dotab_cdcacm;
+  devoptab_list[1] = &dotab_cdcacm;
+  devoptab_list[2] = &dotab_cdcacm;
   cdcacm_init();
-  usart_port=USART2;
-  usart_init();
+  //usart_port=USART2;
+  //usart_init();
 
   spi_setup();
   /* steval-ids001v4m specific setup */
@@ -111,10 +111,11 @@ void init_console(void) {
   setvbuf(stdin,NULL,_IONBF,0); // Sets stdin in unbuffered mode (normal for usart com)
   setvbuf(stdout,NULL,_IONBF,0); // Sets stdin in unbuffered mode (normal for usart com)
 
-   while (poll(stdin) > 0) {
-     printf("Cleaning stdin\n");
-     getc(stdin);
+  while (poll(stdin) > 0) {
+    printf("Cleaning stdin\n");
+    getc(stdin);
   }
+  printf("Stdin cleared\n");
 }
 
 #define MAX_LINE 60
@@ -134,37 +135,10 @@ void end_waiting(void) {
     }
 }
 
-const char* states[] = {
-  "STANDBY",
-  "SLEEP",
-  "READY",
-  "LOCK",
-  "RX",
-  "TX",
-  "ERROR"
-};
-
-char* get_state_str(uint8_t state) {
-  switch (state) {
-  case SP1_ST_STANDBY :
-    return(states[0]);
-  case SP1_ST_SLEEP :
-    return(states[1]);
-  case SP1_ST_READY :
-    return(states[2]);
-  case SP1_ST_LOCK :
-    return(states[3]);
-  case SP1_ST_RX :
-    return(states[4]);
-  case SP1_ST_TX :
-    return(states[5]);
-  default:
-    return(states[6]);
-  }
-}
 
 #define MSG_SIZE 50
 #define CMD_SIZE 10
+#define WRITE_SIZE 50
 #define RETURN_CHAR '\r'
 #define NULL_CHAR '\0'
 
@@ -180,6 +154,7 @@ void read_serial(char *buffer) {
     buffer[input_position] = input_char_value;
     input_position++;
   }
+  putc('\n', stdout);
   buffer[input_position] = NULL_CHAR;
 }
 
@@ -192,6 +167,7 @@ int main(void)
 
   uint8_t rx_values[20];
   uint16_t status = 0x00;
+  uint16_t status_new = 0x00;
 
   init_console();
 
@@ -199,25 +175,25 @@ int main(void)
 
   status = spsgrf_read(0xF0, rx_values, 2);
   printf("\n");
-  printf("MC_STATE: 0x%04x, STATE: 0x%02x\n", status, SP1_STATE(status));
-  printf("Device Info, PARTNUM: 0x%02x, VERSION: 0x%02x\n", rx_values[1], rx_values[0]);
+  printf("MC_STATE: 0x%04X, STATE: 0x%02X\n", status, SP1_STATE(status));
+  printf("Device Info, PARTNUM: 0x%02X, VERSION: 0x%02X\n", rx_values[1], rx_values[0]);
 
-  wait(10);
+  //  wait(10);
   printf("\n");
   printf("Sleep!\n");
   status = spsgrf_cmd(SP1_CMD_SLEEP);
   status = spsgrf_read(SP1_MC_STATE, rx_values, 2);
-  printf("MC_STATE: 0x%04x, STATE: 0x%02x\n", status, SP1_STATE(status));
+  printf("MC_STATE: 0x%04X, STATE: 0x%02X\n", status, SP1_STATE(status));
   printf(get_state_str(SP1_STATE(status)));
   printf("\n");
 
-  wait(10);
+  //  wait(10);
   printf("\n");
   printf("Ready!\n");
   status = spsgrf_cmd(SP1_CMD_READY);
   while (SP1_STATE(status) != SP1_ST_READY) {
     status = spsgrf_read(SP1_MC_STATE, rx_values, 2);
-    printf("MC_STATE: 0x%04x, STATE: 0x%02x\n", status, SP1_STATE(status));
+    printf("MC_STATE: 0x%04X, STATE: 0x%02X\n", status, SP1_STATE(status));
     printf(get_state_str(SP1_STATE(status)));
     printf("\n");
   }
@@ -227,27 +203,30 @@ int main(void)
   /* printf("Standby!\n"); */
   /* status = spsgrf_cmd(SP1_CMD_STANDBY); */
   /* status = spsgrf_read(SP1_MC_STATE, rx_values, 2); */
-  /* printf("MC_STATE: 0x%04x, STATE: 0x%02x\n", status, SP1_STATE(status)); */
+  /* printf("MC_STATE: 0x%04X, STATE: 0x%02X\n", status, SP1_STATE(status)); */
   /* printf(get_state_str(SP1_STATE(status))); */
   /* printf("\n"); */
 
 
-  wait(10);
+  //  wait(10);
   printf("\n");
   status = spsgrf_read(SP1_ANA_FUNC_CONF, rx_values, 2);
-  printf("Read, HIGH: 0x%02x, LOW: 0x%02x\n", rx_values[1], rx_values[0]);
-  printf("MC_STATE: 0x%04x, STATE: 0x%02x\n", status, SP1_STATE(status));
+  printf("Read, HIGH: 0x%02X, LOW: 0x%02X\n", rx_values[1], rx_values[0]);
+  printf("MC_STATE: 0x%04X, STATE: 0x%02X\n", status, SP1_STATE(status));
   printf(get_state_str(SP1_STATE(status)));
   printf("\n");
 
   char my_input[MSG_SIZE];
   char my_cmd[CMD_SIZE];
+  uint8_t write_data[WRITE_SIZE];
   uint8_t sp1_reg;
+  uint8_t sp1_cmd;
   int read_counts;
+  int write_counts;
   int len=0;
 
-  printf("Type your command: r/w/c reg_num readings\n");
-  printf("(r) read, (w) write, (c) cmd\n");
+  printf("\nType your command: r/w/c reg_num readings\n");
+  printf("(r) read, (w) write, (c) cmd, (s) get status\n");
   while (true) {
     if (poll(stdin) > 0) {
       read_serial(my_input);
@@ -258,24 +237,67 @@ int main(void)
         printf("Enter register address to read and number of readings: reg_addr count \n");
         read_serial(my_input);
         sscanf(my_input, "0x%x %d", &sp1_reg, &read_counts);
+        if (read_counts==0)
+          read_counts=1;
         printf("Reading: %x register, counts: %d\n", sp1_reg, read_counts);
         status = spsgrf_read(sp1_reg, rx_values, read_counts);
+        printf("--------\n");
         for (int i=0; i<read_counts; i++) {
-          printf("Address: 0x%02x, Value: 0x%02x\n", sp1_reg, rx_values[i]);
+          printf("Address: 0x%02X, Value: 0x%02X\n", sp1_reg+read_counts-1-i, rx_values[i]);
         }
+        printf("--------\n");
         break;
       case 'w':
-        printf("Write\n");
+        printf("Enter write info: reg_addr wr_count \n");
+        read_serial(my_input);
+        write_counts=1;
+        sscanf(my_input, "0x%x %d", &sp1_reg, &write_counts);
+        if (write_counts == 0)
+          write_counts=1;
+        for (int i=0; i<write_counts; i++) {
+          printf("Enter data[%d]:\n", i);
+          read_serial(my_input);
+          sscanf(my_input, "0x%x", &write_data[i]);
+          printf("Writing: 0x%02X\n", write_data[i]);
+        }
+        printf("--------\n");
+        printf("Writing: ");
+        for (int i=0; i<write_counts; i++) {
+          printf(" 0x%02X", write_data[i]);
+        }
+        printf("\n");
+        printf("--------\n");
+        status = spsgrf_write(sp1_reg, write_data, write_counts);
+        break;
+      case 'c':
+        printf("Enter command to send: cmd (in hex)\n");
+        read_serial(my_input);
+        sscanf(my_input, "0x%x", &sp1_cmd);
+        printf("--------\n");
+        printf("Sending cmd: 0x%x\n", sp1_cmd);
+        printf("--------\n");
+        status = spsgrf_cmd(sp1_cmd);
+        break;
+      case 's':
+        printf("Retrieving state ...\n");
+        status = spsgrf_read(SP1_MC_STATE, rx_values, 2);
+        status_new = (rx_values[1] << 8) | rx_values[0];
+        printf("Current state:\n");
+        printf("--------\n");
+        print_sp1_status(status_new);
+        printf("--------\n");
         break;
       default:
         goto endcmd;
       }
 
-      printf("MC_STATE: 0x%04x, STATE: 0x%02x\n", status, SP1_STATE(status));
+      printf("Previous state:\n");
+      printf("MC_STATE: 0x%04X, STATE: 0x%02X\n", status, SP1_STATE(status));
       printf(get_state_str(SP1_STATE(status)));
+      printf("\n");
     endcmd:
       printf("\n");
-      printf("(r) read, (w) write, (c) cmd ? \n");
+      printf("(r) read, (w) write, (c) cmd, (s) get status\n");
     }
     /* EEPROM test code */
     /* gpio_clear(GPIOA, GPIO9); */

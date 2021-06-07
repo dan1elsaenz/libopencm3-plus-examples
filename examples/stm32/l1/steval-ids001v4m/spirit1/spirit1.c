@@ -29,6 +29,40 @@
 
 // Switch state function that waits until state changed really happened
 
+const char* states[] = {
+  "STANDBY",
+  "SLEEP",
+  "READY",
+  "LOCK",
+  "RX",
+  "TX",
+  "ERROR"
+};
+
+char* get_state_str(uint8_t state) {
+  switch (state) {
+  case SP1_ST_STANDBY :
+    return(states[0]);
+  case SP1_ST_SLEEP :
+    return(states[1]);
+  case SP1_ST_READY :
+    return(states[2]);
+  case SP1_ST_LOCK :
+    return(states[3]);
+  case SP1_ST_RX :
+    return(states[4]);
+  case SP1_ST_TX :
+    return(states[5]);
+  default:
+    return(states[6]);
+  }
+}
+
+void print_sp1_status(uint16_t status) {
+  printf("MC_STATE: 0x%04x, STATE: 0x%02x\n", status, SP1_STATE(status));
+  printf(get_state_str(SP1_STATE(status)));
+  printf("\n");
+}
 
 uint16_t my_spi_xfer(uint32_t spi, uint16_t data)
 {
@@ -64,10 +98,9 @@ uint16_t sp1_cmd(uint8_t cmd, uint32_t spiport,
   return(status);
 }
 
-
-
 uint16_t sp1_read(uint8_t reg_addr, uint8_t *rd_data, uint8_t count,
                   uint32_t spiport, uint32_t gpioport, uint16_t gpios) {
+  //Returns least significant Byte first (position 0 in array)
   uint16_t status = 0x00;
   gpio_clear(gpioport, gpios);
   status = (my_spi_xfer(spiport, SP1_READ) << 8);
