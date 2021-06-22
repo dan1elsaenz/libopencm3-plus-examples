@@ -44,11 +44,11 @@ uint16_t spsgrf_cmd(uint8_t cmd) {
   return(sp1_cmd(cmd, SPSGRF_SPI, SPSGRF_CS_PORT, SPSGRF_CS));
 }
 
-uint16_t spsgrf_read(uint8_t reg_addr, uint8_t *rd_data, uint8_t count) {
+uint16_t spsgrf_read(uint8_t reg_addr, uint8_t *rd_data, uint8_t count, bool inv_dir) {
   //Read from spirit1 register(s). Multiple read if count>1
   //Returns Spirit1 status word
 
-  return(sp1_read(reg_addr, rd_data, count, SPSGRF_SPI, SPSGRF_CS_PORT, SPSGRF_CS));
+  return(sp1_read(reg_addr, rd_data, count, SPSGRF_SPI, SPSGRF_CS_PORT, SPSGRF_CS, inv_dir));
 }
 
 void spi_setup(void) {

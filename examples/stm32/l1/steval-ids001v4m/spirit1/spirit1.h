@@ -17,12 +17,18 @@
 //Registers
 #define SP1_ANA_FUNC_CONF 0x00 //16bits
 #define SP1_MC_STATE 0xC0 //16bits
+#define SP1_LINEAR_FIFO_STATUS 0xE6 //16bits
 
 #define SP1_FIFO 0xFF
 
 //MC_STATE flags
 #define MC_STATE_STATE_FLAG 0x00FE
 #define SP1_STATE(x) (( MC_STATE_STATE_FLAG & (x) ) >> 1)
+
+//LINEAR_FIFO_STATUS flags
+#define SP1_LINEAR_FIFO_STATUS_ELEM_TXFIFO 0x7F00
+#define SP1_LINEAR_FIFO_STATUS_ELEM_RXFIFO 0x007F
+#define SP1_LINEAR_FIFO_STATUS_RXCOUNT(x) (( SP1_LINEAR_FIFO_STATUS_ELEM_RXFIFO & (x) ) >> 0 )
 
 //STATES
 #define SP1_ST_STANDBY 0x40
@@ -42,7 +48,8 @@ uint16_t sp1_write(uint8_t reg_addr, uint8_t *wr_data, uint8_t count,
 uint16_t sp1_cmd(uint8_t cmd, uint32_t spiport,
                  uint32_t gpioport, uint16_t gpios);
 uint16_t sp1_read(uint8_t reg_addr, uint8_t *rd_data, uint8_t count,
-                  uint32_t spiport, uint32_t gpioport, uint16_t gpios);
+                  uint32_t spiport, uint32_t gpioport, uint16_t gpios,
+                  bool inv_dir);
 void sp1_spi_setup(uint32_t spiport);
 
 #endif //SPIRIT1_H

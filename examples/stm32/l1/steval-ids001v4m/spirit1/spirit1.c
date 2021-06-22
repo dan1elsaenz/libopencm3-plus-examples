@@ -99,14 +99,18 @@ uint16_t sp1_cmd(uint8_t cmd, uint32_t spiport,
 }
 
 uint16_t sp1_read(uint8_t reg_addr, uint8_t *rd_data, uint8_t count,
-                  uint32_t spiport, uint32_t gpioport, uint16_t gpios) {
+                  uint32_t spiport, uint32_t gpioport, uint16_t gpios, bool inv_dir) {
   //Returns least significant Byte first (position 0 in array)
   uint16_t status = 0x00;
   gpio_clear(gpioport, gpios);
   status = (my_spi_xfer(spiport, SP1_READ) << 8);
   status |= my_spi_xfer(spiport, reg_addr);
   for (int i=0; i<count; i++) {
-    *(rd_data+(count-1-i)) = my_spi_xfer(spiport, 0x00);
+    if (inv_dir) {
+      *(rd_data+(count-1-i)) = my_spi_xfer(spiport, 0x00);
+    } else {
+      *(rd_data+i) = my_spi_xfer(spiport, 0x00);
+    }
   }
   gpio_set(gpioport, gpios);
   return(status);

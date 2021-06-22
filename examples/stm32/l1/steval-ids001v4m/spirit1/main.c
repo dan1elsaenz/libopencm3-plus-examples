@@ -36,6 +36,41 @@
 #include "steval-ids001v4m.h"
 #include "spirit1.h"
 
+typedef struct {
+  uint8_t reg;
+  uint8_t data;
+} Data_write;
+
+Data_write transmit_conf_data[] = {
+  { 0xa3, 0x35 },
+  { 0x07, 0x36 },
+  { 0x0D, 0xAC },
+  { 0x08, 0x06 },
+  { 0x09, 0x82 },
+  { 0x0A, 0x8F },
+  { 0x0B, 0x99 },
+  { 0x0C, 0x01 },
+  { 0x6C, 0x00 },
+  { 0x9F, 0xA0 },
+  { 0x10, 0x01 },
+  { 0x18, 0x87 },
+  { 0x1A, 0x93 },
+  { 0x1B, 0x1A },
+  { 0x1D, 0x13 },
+  { 0x1E, 0xC8 },
+  { 0x25, 0x62 },
+  { 0x27, 0x15 },
+  { 0x32, 0x3F },
+  { 0x33, 0x30 },
+  { 0x35, 0x12 },
+  { 0x4f, 0x41 },
+  { 0x50, 0x40 },
+  { 0x51, 0x01 },
+  { 0xA1, 0x25 },
+  { 0xBC, 0x22 },
+  { 0xA4, 0x0C },
+  { 0x50, 0x46 }, // Start calibration
+};
 
 const struct rcc_clock_scale rcc_clock_config_32mhz = {
   /* 32MHz PLL from HSE */
@@ -158,6 +193,17 @@ void read_serial(char *buffer) {
   buffer[input_position] = NULL_CHAR;
 }
 
+void write_many(Data_write *list, int n) {
+  for (int i=0; i<n; i++) {
+    printf("Entry: Reg: 0x%02x, data: 0x%02x\n", list[i].reg, list[i].data);
+    spsgrf_write(list[i].reg, &(list[i].data), 1);
+  }
+}
+
+void read_buffer(char *buf, int count) {
+  spsgrf_read(SP1_FIFO, buf, count, false);
+  buf[count]='\0';
+}
 
 int main(void)
 {
@@ -168,12 +214,15 @@ int main(void)
   uint8_t rx_values[20];
   uint16_t status = 0x00;
   uint16_t status_new = 0x00;
+  uint16_t temp = 0x00;
+  char rx_buf[97];
+  int rxfifo_count=0;
 
   init_console();
 
   printf("\n----------\n");
 
-  status = spsgrf_read(0xF0, rx_values, 2);
+  status = spsgrf_read(0xF0, rx_values, 2, true);
   printf("\n");
   printf("MC_STATE: 0x%04X, STATE: 0x%02X\n", status, SP1_STATE(status));
   printf("Device Info, PARTNUM: 0x%02X, VERSION: 0x%02X\n", rx_values[1], rx_values[0]);
@@ -182,7 +231,7 @@ int main(void)
   printf("\n");
   printf("Sleep!\n");
   status = spsgrf_cmd(SP1_CMD_SLEEP);
-  status = spsgrf_read(SP1_MC_STATE, rx_values, 2);
+  status = spsgrf_read(SP1_MC_STATE, rx_values, 2, true);
   printf("MC_STATE: 0x%04X, STATE: 0x%02X\n", status, SP1_STATE(status));
   printf(get_state_str(SP1_STATE(status)));
   printf("\n");
@@ -192,7 +241,7 @@ int main(void)
   printf("Ready!\n");
   status = spsgrf_cmd(SP1_CMD_READY);
   while (SP1_STATE(status) != SP1_ST_READY) {
-    status = spsgrf_read(SP1_MC_STATE, rx_values, 2);
+    status = spsgrf_read(SP1_MC_STATE, rx_values, 2, true);
     printf("MC_STATE: 0x%04X, STATE: 0x%02X\n", status, SP1_STATE(status));
     printf(get_state_str(SP1_STATE(status)));
     printf("\n");
@@ -210,7 +259,7 @@ int main(void)
 
   //  wait(10);
   printf("\n");
-  status = spsgrf_read(SP1_ANA_FUNC_CONF, rx_values, 2);
+  status = spsgrf_read(SP1_ANA_FUNC_CONF, rx_values, 2, true);
   printf("Read, HIGH: 0x%02X, LOW: 0x%02X\n", rx_values[1], rx_values[0]);
   printf("MC_STATE: 0x%04X, STATE: 0x%02X\n", status, SP1_STATE(status));
   printf(get_state_str(SP1_STATE(status)));
@@ -225,8 +274,11 @@ int main(void)
   int write_counts;
   int len=0;
 
+  printf("\nExecuting writing sequence!!!\n");
+  write_many(transmit_conf_data, sizeof(transmit_conf_data)/sizeof(Data_write));
+
   printf("\nType your command: r/w/c reg_num readings\n");
-  printf("(r) read, (w) write, (c) cmd, (s) get status\n");
+  printf("(r) read, (w) write, (c) cmd, (s) get status, (b) read&print buffer\n");
   while (true) {
     if (poll(stdin) > 0) {
       read_serial(my_input);
@@ -240,7 +292,7 @@ int main(void)
         if (read_counts==0)
           read_counts=1;
         printf("Reading: %x register, counts: %d\n", sp1_reg, read_counts);
-        status = spsgrf_read(sp1_reg, rx_values, read_counts);
+        status = spsgrf_read(sp1_reg, rx_values, read_counts, true);
         printf("--------\n");
         for (int i=0; i<read_counts; i++) {
           printf("Address: 0x%02X, Value: 0x%02X\n", sp1_reg+read_counts-1-i, rx_values[i]);
@@ -280,13 +332,25 @@ int main(void)
         break;
       case 's':
         printf("Retrieving state ...\n");
-        status = spsgrf_read(SP1_MC_STATE, rx_values, 2);
+        status = spsgrf_read(SP1_MC_STATE, rx_values, 2, true);
         status_new = (rx_values[1] << 8) | rx_values[0];
         printf("Current state:\n");
         printf("--------\n");
         print_sp1_status(status_new);
         printf("--------\n");
         break;
+      case 'b':
+        printf("Reading all buffer ...\n");
+        printf("Reading RX buffer count\n");
+        status = spsgrf_read(SP1_LINEAR_FIFO_STATUS, rx_values, 2, true);
+        temp = ( rx_values[1] << 8 ) | rx_values[0];
+        rxfifo_count= SP1_LINEAR_FIFO_STATUS_RXCOUNT(temp);
+        printf("RX buffer count: %d\n", rxfifo_count);
+        read_buffer(rx_buf, rxfifo_count);
+        printf("Received data:\n");
+        printf("%s\n", rx_buf);
+        printf("--------\n");
+
       default:
         goto endcmd;
       }
