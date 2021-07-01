@@ -16,3 +16,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifndef MAIN_H
+#define MAIN_H
+
+#include "spirit1.h"
+
+extern SpiritSPI spsgrf_spi;
+
+void system_init(void);
+void init_console(void);
+void end_waiting(void);
+void read_serial(char *buffer);
+
+#endif // MAIN_H

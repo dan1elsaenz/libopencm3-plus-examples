@@ -18,17 +18,22 @@
 #define SP1_ANA_FUNC_CONF 0x00 //16bits
 #define SP1_MC_STATE 0xC0 //16bits
 #define SP1_LINEAR_FIFO_STATUS 0xE6 //16bits
-
+#define SP1_DEM_CONFIG 0xA3
 #define SP1_FIFO 0xFF
 
+//Flags
+
 //MC_STATE flags
-#define MC_STATE_STATE_FLAG 0x00FE
-#define SP1_STATE(x) (( MC_STATE_STATE_FLAG & (x) ) >> 1)
+#define SP1_MC_STATE_STATE_FLAG 0x00FE
+#define SP1_STATE(x) (( SP1_MC_STATE_STATE_FLAG & (x) ) >> 1)
 
 //LINEAR_FIFO_STATUS flags
 #define SP1_LINEAR_FIFO_STATUS_ELEM_TXFIFO 0x7F00
 #define SP1_LINEAR_FIFO_STATUS_ELEM_RXFIFO 0x007F
 #define SP1_LINEAR_FIFO_STATUS_RXCOUNT(x) (( SP1_LINEAR_FIFO_STATUS_ELEM_RXFIFO & (x) ) >> 0 )
+
+//DEM_CONFIG flags
+#define SP1_DEM_CONFIG_DEM_ORDER (1 << 1)
 
 //STATES
 #define SP1_ST_STANDBY 0x40
@@ -38,18 +43,30 @@
 #define SP1_ST_RX 0x33
 #define SP1_ST_TX 0x5f
 
-//TODO make struct to add gpioport, gpios and spiport for all functions
+typedef struct {
+  uint32_t spiport;
+  uint32_t gpioport;
+  uint16_t spi_cs;
+  uint32_t sdnport;
+  uint16_t sdnpin;
+} SpiritSPI;
 
+typedef struct dwrite {
+  uint8_t reg;
+  uint8_t data;
+} Data_write;
+
+void min_init(void);
+void write_many(SpiritSPI dev, Data_write *list, int n);
+void read_buffer(SpiritSPI dev, unsigned char *buf, int count);
 char* get_state_str(uint8_t state);
 void print_sp1_status(uint16_t status);
 uint16_t my_spi_xfer(uint32_t spi, uint16_t data);
-uint16_t sp1_write(uint8_t reg_addr, uint8_t *wr_data, uint8_t count,
-                   uint32_t spiport, uint32_t gpioport, uint16_t gpios);
-uint16_t sp1_cmd(uint8_t cmd, uint32_t spiport,
-                 uint32_t gpioport, uint16_t gpios);
-uint16_t sp1_read(uint8_t reg_addr, uint8_t *rd_data, uint8_t count,
-                  uint32_t spiport, uint32_t gpioport, uint16_t gpios,
-                  bool inv_dir);
-void sp1_spi_setup(uint32_t spiport);
+uint16_t sp1_write(SpiritSPI spi_conf, uint8_t reg_addr,
+                   uint8_t *wr_data, uint8_t count);
+uint16_t sp1_cmd(SpiritSPI spi_conf, uint8_t cmd);
+uint16_t sp1_read(SpiritSPI spi_conf, uint8_t reg_addr,
+                  uint8_t *rd_data, uint8_t count, bool inv_dir);
+void sp1_spi_setup(SpiritSPI spi_conf);
 
 #endif //SPIRIT1_H

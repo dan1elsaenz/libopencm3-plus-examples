@@ -16,12 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <libopencm3-plus/utils/misc.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/spi.h>
-#include <libopencm3-plus/utils/misc.h>
-#include "steval-ids001v4m.h"
+
 #include "spirit1.h"
+#include "steval-ids001v4m.h"
 
 #define SPSGRF_SDN_PORT GPIOC
 #define SPSGRF_SDN GPIO13
@@ -30,26 +31,33 @@
 #define SPSGRF_CS_PORT GPIOB
 #define SPSGRF_CS GPIO12
 
-uint16_t spsgrf_write(uint8_t reg_addr, uint8_t *wr_data, uint8_t count) {
-  //Write to spirit1 register(s). Multiple write if count>1
-  //Returns Spirit1 status word
+SpiritSPI spsgrf_spi = {.spiport = SPI2,
+                        .gpioport = GPIOB,
+                        .spi_cs = GPIO12,
+                        .sdnport = GPIOC,
+                        .sdnpin = GPIO13};
 
-  return(sp1_write(reg_addr, wr_data, count, SPSGRF_SPI, SPSGRF_CS_PORT, SPSGRF_CS));
-}
+/* uint16_t spsgrf_write(uint8_t reg_addr, uint8_t *wr_data, uint8_t count) { */
+/*   //Write to spirit1 register(s). Multiple write if count>1 */
+/*   //Returns Spirit1 status word */
 
-uint16_t spsgrf_cmd(uint8_t cmd) {
-  //Command spirit1
-  //Returns Spirit1 status word
+/*   return(sp1_write(reg_addr, wr_data, count, spsgrf_spi)); */
+/* } */
 
-  return(sp1_cmd(cmd, SPSGRF_SPI, SPSGRF_CS_PORT, SPSGRF_CS));
-}
+/* uint16_t spsgrf_cmd(uint8_t cmd) { */
+/*   //Command spirit1 */
+/*   //Returns Spirit1 status word */
 
-uint16_t spsgrf_read(uint8_t reg_addr, uint8_t *rd_data, uint8_t count, bool inv_dir) {
-  //Read from spirit1 register(s). Multiple read if count>1
-  //Returns Spirit1 status word
+/*   return(sp1_cmd(cmd, spsgrf_spi)); */
+/* } */
 
-  return(sp1_read(reg_addr, rd_data, count, SPSGRF_SPI, SPSGRF_CS_PORT, SPSGRF_CS, inv_dir));
-}
+/* uint16_t spsgrf_read(uint8_t reg_addr, uint8_t *rd_data, uint8_t count, bool
+ * inv_dir) { */
+/*   //Read from spirit1 register(s). Multiple read if count>1 */
+/*   //Returns Spirit1 status word */
+
+/*   return(sp1_read(reg_addr, rd_data, count, spsgrf_spi, inv_dir)); */
+/* } */
 
 void spi_setup(void) {
   /* Pin port B and SPI2 clock */
@@ -57,40 +65,41 @@ void spi_setup(void) {
   rcc_periph_clock_enable(RCC_SPI2);
 
   /* Alternate Function 5 for SPI on port B */
-  gpio_set_af(SPSGRF_SPI_PORT, GPIO_AF5,
-              GPIO13 |
-              GPIO14 |
-              GPIO15 );
+  gpio_set_af(SPSGRF_SPI_PORT, GPIO_AF5, GPIO13 | GPIO14 | GPIO15);
   /* AF for pins 13(SCK), 14(MISO), 15(MOSI) on port B */
-  gpio_mode_setup(SPSGRF_SPI_PORT, GPIO_MODE_AF,
-                  GPIO_PUPD_NONE,
-                  GPIO13 |
-                  GPIO14 |
-                  GPIO15 );
+  gpio_mode_setup(SPSGRF_SPI_PORT, GPIO_MODE_AF, GPIO_PUPD_NONE,
+                  GPIO13 | GPIO14 | GPIO15);
 
   /* Errata: section 2.4.6, increase pin speed or decrease APB clock speed */
   /* This is necessary for SPI and I2S */
-  gpio_set_output_options(SPSGRF_SPI_PORT,
-                          GPIO_OTYPE_PP,
-                          GPIO_OSPEED_40MHZ,
+  gpio_set_output_options(SPSGRF_SPI_PORT, GPIO_OTYPE_PP, GPIO_OSPEED_40MHZ,
                           GPIO13 | GPIO14 | GPIO15);
 
   /* Output mode for pin 12 (spsgrf-868 SPI_CS connection) */
   gpio_mode_setup(SPSGRF_CS_PORT, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE,
-          SPSGRF_CS);
+                  spsgrf_spi.spi_cs);
 
-  gpio_set(SPSGRF_CS_PORT, SPSGRF_CS);
+  gpio_set(spsgrf_spi.gpioport, spsgrf_spi.spi_cs);
 
-  sp1_spi_setup(SPSGRF_SPI);
+  sp1_spi_setup(spsgrf_spi);
 }
 
 void spsgrf868_setup(void) {
   rcc_periph_clock_enable(RCC_GPIOC);
 
-  gpio_mode_setup(SPSGRF_SDN_PORT, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, SPSGRF_SDN);
-  gpio_set(SPSGRF_SDN_PORT, SPSGRF_SDN);
+  gpio_mode_setup(spsgrf_spi.sdnport, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE,
+                  spsgrf_spi.sdnpin);
+  gpio_set(spsgrf_spi.sdnport, spsgrf_spi.sdnpin);
   wait(100);
-  gpio_clear(SPSGRF_SDN_PORT, SPSGRF_SDN);
+  gpio_clear(spsgrf_spi.sdnport, spsgrf_spi.sdnpin);
 
   wait(100);
+}
+
+void eeprom_init(void) {
+  rcc_periph_clock_enable(RCC_GPIOA);
+
+  /* GPIO0 y 1 for LEDs (RED and ORANGE respectively) */
+  gpio_mode_setup(GPIOA, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO9);
+  gpio_set(GPIOA, GPIO9);
 }
