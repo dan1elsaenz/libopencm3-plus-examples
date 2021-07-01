@@ -19,6 +19,11 @@
 #define SP1_MC_STATE 0xC0           // 16bits
 #define SP1_LINEAR_FIFO_STATUS 0xE6 // 16bits
 #define SP1_DEM_CONFIG 0xA3
+#define SP1_XO_RCO_TEST 0xB4
+#define SP1_SYNT0 0x0B
+#define SP1_SYNT1 0x0A
+#define SP1_SYNT2 0x09
+#define SP1_SYNT3 0x08
 #define SP1_FIFO 0xFF
 
 // Flags
@@ -36,6 +41,16 @@
 // DEM_CONFIG flags
 #define SP1_DEM_CONFIG_DEM_ORDER (1 << 1)
 
+// XO_RCO_TEST flags
+#define SP1_XO_RCO_TEST_PD_CLKDIV (1 << 3)
+
+// SYNT0
+#define SP1_SYNT0_SYNT4_0 3 // bit pos
+#define SP1_SYNT0_BS (0x7 << 0)
+
+// SYNT3
+#define SP1_SYNT3_WCP (0x7 << 5)
+
 // STATES
 #define SP1_ST_STANDBY 0x40
 #define SP1_ST_SLEEP 0x36
@@ -50,6 +65,8 @@ typedef struct {
   uint16_t spi_cs;
   uint32_t sdnport;
   uint16_t sdnpin;
+  float fxo;
+  float fbase;
 } SpiritSPI;
 
 typedef struct dwrite {
@@ -57,7 +74,15 @@ typedef struct dwrite {
   uint8_t data;
 } Data_write;
 
-void min_init(void);
+void min_init(SpiritSPI dev);
+void change_to_state(SpiritSPI dev, int state_cmd, int state_result);
+float get_fclk(SpiritSPI dev);
+void set_clkdiv(SpiritSPI dev);
+void set_synt_reg(SpiritSPI dev, uint32_t synt);
+float set_synt(SpiritSPI dev);
+float calc_if_ana(SpiritSPI dev);
+float calc_if_dig(SpiritSPI dev);
+uint16_t get_mc_state(SpiritSPI dev);
 void write_many(SpiritSPI dev, Data_write *list, int n);
 void read_buffer(SpiritSPI dev, unsigned char *buf, int count);
 char *get_state_str(uint8_t state);

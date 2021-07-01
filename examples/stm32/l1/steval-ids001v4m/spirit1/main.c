@@ -254,9 +254,31 @@ int main(void) {
   int read_counts;
   int write_counts;
 
+  float if_offset_ana;
+  float if_offset_dig;
+
   printf("\nExecuting writing sequence!!!\n");
   write_many(spsgrf_spi, transmit_conf_data,
              sizeof(transmit_conf_data) / sizeof(Data_write));
+
+  printf("\n");
+  set_clkdiv(spsgrf_spi);
+  printf("\n");
+
+  printf("\n");
+  printf("Dig freq: %f\n", get_fclk(spsgrf_spi));
+  printf("\n");
+
+  printf("Intermediate frequency:\n");
+  if_offset_ana = calc_if_ana(spsgrf_spi);
+  printf("%f 0x%02x\n", if_offset_ana, (unsigned int)if_offset_ana);
+  if_offset_dig = calc_if_dig(spsgrf_spi);
+  printf("%f 0x%02x\n", if_offset_dig, (unsigned int)if_offset_dig);
+
+  printf("\n");
+  printf("Synt\n");
+  set_synt(spsgrf_spi);
+  printf("\n");
 
   printf("\nType your command: r/w/c reg_num readings\n");
   printf("(r) read, (w) write, (c) cmd, (s) get status, (b) "
@@ -272,7 +294,8 @@ int main(void) {
             "Enter register address to read and number of readings: "
             "reg_addr count \n");
         read_serial(my_input);
-        sscanf(my_input, "0x%hhx %d", &sp1_reg, &read_counts);
+        sscanf(my_input, "0x%x %d", (unsigned int *)&sp1_reg,
+               &read_counts);
         if (read_counts == 0)
           read_counts = 1;
         printf("Reading: %x register, counts: %d\n", sp1_reg,
@@ -290,13 +313,14 @@ int main(void) {
         printf("Enter write info: reg_addr wr_count \n");
         read_serial(my_input);
         write_counts = 1;
-        sscanf(my_input, "0x%hhx %d", &sp1_reg, &write_counts);
+        sscanf(my_input, "0x%x %d", (unsigned int *)&sp1_reg,
+               &write_counts);
         if (write_counts == 0)
           write_counts = 1;
         for (int i = 0; i < write_counts; i++) {
           printf("Enter data[%d]:\n", i);
           read_serial(my_input);
-          sscanf(my_input, "0x%hhx", &write_data[i]);
+          sscanf(my_input, "0x%x", (unsigned int *)&write_data[i]);
           printf("Writing: 0x%02X\n", write_data[i]);
         }
         printf("--------\n");
@@ -312,7 +336,7 @@ int main(void) {
       case 'c':
         printf("Enter command to send: cmd (in hex)\n");
         read_serial(my_input);
-        sscanf(my_input, "0x%hhx", &sp1_my_cmd);
+        sscanf(my_input, "0x%x", (unsigned int *)&sp1_my_cmd);
         printf("--------\n");
         printf("Sending cmd: 0x%x\n", sp1_my_cmd);
         printf("--------\n");
