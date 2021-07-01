@@ -14,28 +14,29 @@
 #define SP1_CMD_FLUSHRXFIFO 0x71
 #define SP1_CMD_FLUSHTXFIFO 0x72
 
-//Registers
-#define SP1_ANA_FUNC_CONF 0x00 //16bits
-#define SP1_MC_STATE 0xC0 //16bits
-#define SP1_LINEAR_FIFO_STATUS 0xE6 //16bits
+// Registers
+#define SP1_ANA_FUNC_CONF 0x00      // 16bits
+#define SP1_MC_STATE 0xC0           // 16bits
+#define SP1_LINEAR_FIFO_STATUS 0xE6 // 16bits
 #define SP1_DEM_CONFIG 0xA3
 #define SP1_FIFO 0xFF
 
-//Flags
+// Flags
 
-//MC_STATE flags
+// MC_STATE flags
 #define SP1_MC_STATE_STATE_FLAG 0x00FE
-#define SP1_STATE(x) (( SP1_MC_STATE_STATE_FLAG & (x) ) >> 1)
+#define SP1_STATE(x) ((SP1_MC_STATE_STATE_FLAG & (x)) >> 1)
 
-//LINEAR_FIFO_STATUS flags
+// LINEAR_FIFO_STATUS flags
 #define SP1_LINEAR_FIFO_STATUS_ELEM_TXFIFO 0x7F00
 #define SP1_LINEAR_FIFO_STATUS_ELEM_RXFIFO 0x007F
-#define SP1_LINEAR_FIFO_STATUS_RXCOUNT(x) (( SP1_LINEAR_FIFO_STATUS_ELEM_RXFIFO & (x) ) >> 0 )
+#define SP1_LINEAR_FIFO_STATUS_RXCOUNT(x)                            \
+  ((SP1_LINEAR_FIFO_STATUS_ELEM_RXFIFO & (x)) >> 0)
 
-//DEM_CONFIG flags
+// DEM_CONFIG flags
 #define SP1_DEM_CONFIG_DEM_ORDER (1 << 1)
 
-//STATES
+// STATES
 #define SP1_ST_STANDBY 0x40
 #define SP1_ST_SLEEP 0x36
 #define SP1_ST_READY 0x03
@@ -59,7 +60,7 @@ typedef struct dwrite {
 void min_init(void);
 void write_many(SpiritSPI dev, Data_write *list, int n);
 void read_buffer(SpiritSPI dev, unsigned char *buf, int count);
-char* get_state_str(uint8_t state);
+char *get_state_str(uint8_t state);
 void print_sp1_status(uint16_t status);
 uint16_t my_spi_xfer(uint32_t spi, uint16_t data);
 uint16_t sp1_write(SpiritSPI spi_conf, uint8_t reg_addr,
@@ -69,4 +70,4 @@ uint16_t sp1_read(SpiritSPI spi_conf, uint8_t reg_addr,
                   uint8_t *rd_data, uint8_t count, bool inv_dir);
 void sp1_spi_setup(SpiritSPI spi_conf);
 
-#endif //SPIRIT1_H
+#endif // SPIRIT1_H

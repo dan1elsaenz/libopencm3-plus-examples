@@ -2,10 +2,10 @@
  * Copyright (C) 2013 ARCOS-Lab Universidad de Costa Rica
  * Author: Federico Ruiz Ugalde <memeruiz@gmail.com>
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,7 +13,8 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see
+ * <http://www.gnu.org/licenses/>.
  */
 
 #include <libopencm3-plus/utils/misc.h>
@@ -31,13 +32,14 @@
 #define SPSGRF_CS_PORT GPIOB
 #define SPSGRF_CS GPIO12
 
-SpiritSPI spsgrf_spi = {.spiport = SPI2,
-                        .gpioport = GPIOB,
-                        .spi_cs = GPIO12,
-                        .sdnport = GPIOC,
-                        .sdnpin = GPIO13};
+SpiritSPI spsgrf_spi = { .spiport = SPI2,
+                         .gpioport = GPIOB,
+                         .spi_cs = GPIO12,
+                         .sdnport = GPIOC,
+                         .sdnpin = GPIO13 };
 
-/* uint16_t spsgrf_write(uint8_t reg_addr, uint8_t *wr_data, uint8_t count) { */
+/* uint16_t spsgrf_write(uint8_t reg_addr, uint8_t *wr_data, uint8_t
+ * count) { */
 /*   //Write to spirit1 register(s). Multiple write if count>1 */
 /*   //Returns Spirit1 status word */
 
@@ -51,12 +53,13 @@ SpiritSPI spsgrf_spi = {.spiport = SPI2,
 /*   return(sp1_cmd(cmd, spsgrf_spi)); */
 /* } */
 
-/* uint16_t spsgrf_read(uint8_t reg_addr, uint8_t *rd_data, uint8_t count, bool
- * inv_dir) { */
+/* uint16_t spsgrf_read(uint8_t reg_addr, uint8_t *rd_data, uint8_t
+ * count, bool inv_dir) { */
 /*   //Read from spirit1 register(s). Multiple read if count>1 */
 /*   //Returns Spirit1 status word */
 
-/*   return(sp1_read(reg_addr, rd_data, count, spsgrf_spi, inv_dir)); */
+/*   return(sp1_read(reg_addr, rd_data, count, spsgrf_spi, inv_dir));
+ */
 /* } */
 
 void spi_setup(void) {
@@ -70,9 +73,11 @@ void spi_setup(void) {
   gpio_mode_setup(SPSGRF_SPI_PORT, GPIO_MODE_AF, GPIO_PUPD_NONE,
                   GPIO13 | GPIO14 | GPIO15);
 
-  /* Errata: section 2.4.6, increase pin speed or decrease APB clock speed */
+  /* Errata: section 2.4.6, increase pin speed or decrease APB clock
+   * speed */
   /* This is necessary for SPI and I2S */
-  gpio_set_output_options(SPSGRF_SPI_PORT, GPIO_OTYPE_PP, GPIO_OSPEED_40MHZ,
+  gpio_set_output_options(SPSGRF_SPI_PORT, GPIO_OTYPE_PP,
+                          GPIO_OSPEED_40MHZ,
                           GPIO13 | GPIO14 | GPIO15);
 
   /* Output mode for pin 12 (spsgrf-868 SPI_CS connection) */
@@ -87,8 +92,8 @@ void spi_setup(void) {
 void spsgrf868_setup(void) {
   rcc_periph_clock_enable(RCC_GPIOC);
 
-  gpio_mode_setup(spsgrf_spi.sdnport, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE,
-                  spsgrf_spi.sdnpin);
+  gpio_mode_setup(spsgrf_spi.sdnport, GPIO_MODE_OUTPUT,
+                  GPIO_PUPD_NONE, spsgrf_spi.sdnpin);
   gpio_set(spsgrf_spi.sdnport, spsgrf_spi.sdnpin);
   wait(100);
   gpio_clear(spsgrf_spi.sdnport, spsgrf_spi.sdnpin);
