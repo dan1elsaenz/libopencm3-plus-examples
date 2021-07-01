@@ -24,6 +24,7 @@ OOCD_INTERFACE = stlink-v2-1
 
 #LDSCRIPT = ../../../../../libopencm3-plus/lib/libopencm3_plus_steval-ids001v4m.ld
 LDSCRIPT = libopencm3_plus_steval-ids001v4m.ld
+LDLIBS = -lm
 
 OBJS	+= spirit1.o steval-ids001v4m.o
 
