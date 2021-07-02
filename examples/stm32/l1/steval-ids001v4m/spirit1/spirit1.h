@@ -24,6 +24,8 @@
 #define SP1_SYNT1 0x0A
 #define SP1_SYNT2 0x09
 #define SP1_SYNT3 0x08
+#define SP1_SYNTH_CONFIG1 0x9E
+#define SP1_SYNTH_CONFIG0 0x9F
 #define SP1_FIFO 0xFF
 
 // Flags
@@ -44,12 +46,15 @@
 // XO_RCO_TEST flags
 #define SP1_XO_RCO_TEST_PD_CLKDIV (1 << 3)
 
-// SYNT0
+// SYNT0 flags
 #define SP1_SYNT0_SYNT4_0 3 // bit pos
 #define SP1_SYNT0_BS (0x7 << 0)
 
-// SYNT3
+// SYNT3 flags
 #define SP1_SYNT3_WCP (0x7 << 5)
+
+// SYNTH_CONFIG1 flags
+#define SP1_SYNTH_CONFIG1_REFDIV (1 << 7)
 
 // STATES
 #define SP1_ST_STANDBY 0x40
@@ -78,6 +83,7 @@ void min_init(SpiritSPI dev);
 void change_to_state(SpiritSPI dev, int state_cmd, int state_result);
 float get_fclk(SpiritSPI dev);
 void set_clkdiv(SpiritSPI dev);
+void set_synth_refdiv(SpiritSPI dev, int D);
 void set_synt_reg(SpiritSPI dev, uint32_t synt);
 float set_synt(SpiritSPI dev);
 float calc_if_ana(SpiritSPI dev);

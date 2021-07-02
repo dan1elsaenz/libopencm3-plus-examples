@@ -19,6 +19,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#include <assert.h>
 #include <libopencm3-plus/utils/misc.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/spi.h>
@@ -122,6 +123,26 @@ void set_clkdiv(SpiritSPI dev) {
   change_to_state(dev, SP1_CMD_READY, SP1_ST_READY);
 }
 
+void set_synth_refdiv(SpiritSPI dev, int D) {
+  uint8_t data;
+  sp1_read(dev, SP1_SYNTH_CONFIG1, &data, 1, true);
+  switch (D) {
+  case 2:
+    data = SP1_SYNTH_CONFIG1_REFDIV |
+           (data & ~(SP1_SYNTH_CONFIG1_REFDIV));
+    break;
+  case 1:
+    data = (data & ~(SP1_SYNTH_CONFIG1_REFDIV));
+    break;
+  default:
+    goto set_synth_refdiv_fail;
+  }
+  sp1_write(dev, SP1_SYNTH_CONFIG1, &data, 1);
+  return;
+set_synth_refdiv_fail:
+  assert((D != 1) & (D != 2));
+}
+
 void set_synt_reg(SpiritSPI dev, uint32_t synt) {
   uint8_t data;
   uint8_t tmp;
@@ -146,6 +167,7 @@ void set_synt_reg(SpiritSPI dev, uint32_t synt) {
 }
 
 float set_synt(SpiritSPI dev) {
+  // Sets Synt value and BS (Band select)
   int D;
   int B;
   uint8_t BS;
@@ -182,6 +204,7 @@ float set_synt(SpiritSPI dev) {
     isynt = synt;
     printf("For D: %d, synt: %f, %x\n", D, synt, isynt);
     if (isynt < pow(2, 26)) {
+      set_synth_refdiv(dev, D);
       set_synt_reg(dev, isynt);
       return (isynt);
     }
@@ -293,7 +316,8 @@ void sp1_spi_setup(SpiritSPI spi_conf) {
   // Before calling this function you have to:
   //- Turn the clocks on for the GPIO port and SPI unit
   //- Setup CS as output (gpio_mode_setup)
-  //- Configure Alternative function number for SPI (MISO, MOSI, SCLK)
+  //- Configure Alternative function number for SPI (MISO, MOSI,
+  // SCLK)
   // pins (gpio_set_af)
   //- Configure MISO, MOSI, SCLK pins as Alternate Function mode
   //(gpio_mode_setup)
