@@ -71,7 +71,7 @@ MOD1 (data rate)
 == 38433.0749512
 
 CHFLT channel filter bandwidth
-0x1D: 0x13 ->  98 * 50000000/26000000
+0x1D: 0x13 ->  98 * 25000000/26000000
 
 AFC2 Auto Freq Comp
 0x1E: 0xC8 -> AFC_FREEZE_ON_SYNC : ON!

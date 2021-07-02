@@ -419,6 +419,14 @@ void set_tx_out_capis(SpiritSPI dev) {
                    dev.tx_out_capis);
 }
 
+void set_mod_type(SpiritSPI dev) {
+  _update_bitfield(dev, SP1_MOD0, SP1_MOD0_MOD_TYPE, dev.mod_type);
+}
+
+uint8_t get_mod_type(SpiritSPI dev) {
+  return (_get_bitfield(dev, SP1_MOD0, SP1_MOD0_MOD_TYPE));
+}
+
 void set_datarate(SpiritSPI *dev) {
   double ef;
   double mf;
@@ -451,6 +459,11 @@ double get_datarate(SpiritSPI dev) {
   // Eq 11
   return (get_fclk(dev) * (256 + ((double)datarate_m)) *
           pow(2.0, ((double)datarate_e)) / pow(2, 28));
+}
+
+void set_chflt(SpiritSPI dev) {
+  _update_bitfield(dev, SP1_CHFLT, SP1_CHFLT_M, dev.chflt_m);
+  _update_bitfield(dev, SP1_CHFLT, SP1_CHFLT_E, dev.chflt_e);
 }
 
 uint16_t get_mc_state(SpiritSPI dev) {

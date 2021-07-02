@@ -52,8 +52,8 @@ Data_write transmit_conf_data[] = {
   { 0x10, 0x01 }, // Output power *
   { 0x18, 0x87 }, // Power ramping and Output Load Capacitors *
   { 0x1A, 0x93 }, // Mantissa data rate *
-  { 0x1B, 0x1A }, // Exponent data rate *, Modulation Type
-  { 0x1D, 0x13 }, // Channel filter
+  { 0x1B, 0x1A }, // Exponent data rate *, Modulation Type *
+  { 0x1D, 0x13 }, // Channel filter *
   { 0x1E, 0xC8 }, // Auto Frequency Correction
   { 0x25, 0x62 }, // Auto Gain Control (AGC)
   { 0x27, 0x15 }, // RXFIFO filling depends on Carrier Sense threshold
@@ -307,6 +307,11 @@ int main(void) {
   set_datarate(&spsgrf_spi);
   printf("Get datarate: %f %f\n", get_datarate(spsgrf_spi),
          spsgrf_spi.datarate_rd);
+
+  set_mod_type(spsgrf_spi);
+  printf("Modulation Type: 0x%X\n", get_mod_type(spsgrf_spi));
+
+  set_chflt(spsgrf_spi);
 
   printf("\nType your command: r/w/c reg_num readings\n");
   printf("(r) read, (w) write, (c) cmd, (s) get status, (b) "

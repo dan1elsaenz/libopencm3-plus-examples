@@ -44,6 +44,7 @@
 #define SP1_PA_POWER8 0x10
 #define SP1_MOD1 0x1A
 #define SP1_MOD0 0x1B
+#define SP1_CHFLT 0x1D
 #define SP1_FIFO 0xFF
 
 // Flags
@@ -91,8 +92,18 @@
 // MOD0 flags
 #define SP1_MOD0_CW (1 << 7)
 #define SP1_MOD0_BT_SEL (1 << 6)
+#define SP1_MOD0_BT1 0x0
+#define SP1_MOD0_BT2 0x1
 #define SP1_MOD0_MOD_TYPE (0x3 << 4)
+#define SP1_MOD0_MOD_TYPE_2_FSK 0x0
+#define SP1_MOD0_MOD_TYPE_GFSK 0x1
+#define SP1_MOD0_MOD_TYPE_ASK_OOK 0x2
+#define SP1_MOD0_MOD_TYPE_MSK 0x3
 #define SP1_MOD0_DATARATE_E (0xF << 0)
+
+// CHFLT flags
+#define SP1_CHFLT_M (0xF << 4)
+#define SP1_CHFLT_E (0xF << 0)
 
 // STATES
 #define SP1_ST_STANDBY 0x40
@@ -121,6 +132,9 @@ typedef struct {
   uint8_t tx_ramp_step;
   double datarate_cmd;
   double datarate_rd;
+  uint8_t mod_type;
+  uint8_t chflt_m;
+  uint8_t chflt_e;
 
 } SpiritSPI;
 
@@ -131,6 +145,8 @@ typedef struct dwrite {
 
 void min_init(SpiritSPI dev);
 void change_to_state(SpiritSPI dev, int state_cmd, int state_result);
+void set_mod_type(SpiritSPI dev);
+uint8_t get_mod_type(SpiritSPI dev);
 void set_datarate(SpiritSPI *dev);
 double get_datarate(SpiritSPI dev);
 double get_fclk(SpiritSPI dev);
