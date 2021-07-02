@@ -39,8 +39,10 @@ SpiritSPI spsgrf_spi = {
   .sdnport = GPIOC,
   .sdnpin = GPIO13,
   .fxo = 50000000,
-  .fbase = 868000000,
-  .ch_space_steps = 1 // steps of fxo/(2^15)
+  .fbase_cmd = 868000000,
+  .fbase_rd = 868000000,
+  .ch_space_steps = 1, // steps of fxo/(2^15)
+  .channel = 1,
 };
 
 /* uint16_t spsgrf_write(uint8_t reg_addr, uint8_t *wr_data, uint8_t

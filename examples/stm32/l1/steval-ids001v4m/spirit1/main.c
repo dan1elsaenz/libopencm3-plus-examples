@@ -39,15 +39,15 @@
 #include "steval-ids001v4m.h"
 
 Data_write transmit_conf_data[] = {
-  { 0xa3, 0x35 }, // DEM_ORDER = 0 during ratio init
-  { 0x07, 0x36 }, // Intermediate Frequency Analog must be 480kHz
-  { 0x0D, 0xAC }, // Intermediate Frequency Digital must be 480kHz
-  { 0x08, 0x06 }, // 0x08->0x0B: SYNT: Base carrier Frequency
+  { 0xa3, 0x35 }, // DEM_ORDER = 0 during ratio init *
+  { 0x07, 0x36 }, // Intermediate Frequency Analog must be 480kHz *
+  { 0x0D, 0xAC }, // Intermediate Frequency Digital must be 480kHz *
+  { 0x08, 0x06 }, // 0x08->0x0B: SYNT: Base carrier Frequency *
   { 0x09, 0x82 }, // WCP: channel selection
-  { 0x0A, 0x8F }, // BS: Depends on frequency
-  { 0x0B, 0x99 }, // SYNT
-  { 0x0C, 0x01 }, // Channel Space
-  { 0x6C, 0x00 }, // Channel number
+  { 0x0A, 0x8F }, // BS: Depends on frequency *
+  { 0x0B, 0x99 }, // SYNT *
+  { 0x0C, 0x01 }, // Channel Space *
+  { 0x6C, 0x00 }, // Channel number *
   { 0x9F, 0xA0 }, // TSPLIT
   { 0x10, 0x01 }, // Output power
   { 0x18, 0x87 }, // Power ramping and Output Load Capacitors
@@ -56,16 +56,15 @@ Data_write transmit_conf_data[] = {
   { 0x1D, 0x13 }, // Channel filter
   { 0x1E, 0xC8 }, // Auto Frequency Correction
   { 0x25, 0x62 }, // Auto Gain Control (AGC)
-  { 0x27,
-    0x15 }, // RX FIFO filling depends on Carrier Sense threshold
+  { 0x27, 0x15 }, // RXFIFO filling depends on Carrier Sense threshold
   { 0x32, 0x3F }, // Preamble length, sync_length, packet length mode
   { 0x33, 0x30 }, // Whitening, CRC Mode, TXSOURCE
   { 0x35, 0x12 }, // Length of packet
   { 0x4f, 0x41 }, // Discard if bad CRC, Packet filter options
   { 0x50, 0x40 }, // Timeout disabling, automatic calibration
   { 0x51, 0x01 }, // Piggybacking?, Auto packet filtering
-  { 0xA1, 0x25 }, // Set VCO current
-  { 0xBC, 0x22 }, // During radio config
+  { 0xA1, 0x25 }, // Set VCO current *
+  { 0xBC, 0x22 }, // During radio config *
   { 0xA4, 0x0C }, // SMPS config
   { 0x50,
     0x46 }, // Start calibration. TODO: check calibration is finished
@@ -276,13 +275,22 @@ int main(void) {
   printf("%f 0x%02x\n", if_offset_dig, (unsigned int)if_offset_dig);
 
   printf("\n");
-  printf("Synt\n");
-  set_synt(spsgrf_spi);
+  printf("Desired Fbase: %f\n", spsgrf_spi.fbase_cmd);
+  set_fbase(&spsgrf_spi);
+  printf("Set Fbase: %f\n", spsgrf_spi.fbase_rd);
   printf("\n");
 
   printf("\n");
-  printf("Synt\n");
+  printf("Channel spacing steps\n");
   set_ch_space_steps(spsgrf_spi, 1);
+  printf("\n");
+
+  set_channel(spsgrf_spi);
+
+  printf("Channel spacing: %f\n", _get_channel_spacing(spsgrf_spi));
+
+  printf("\n");
+  printf("Channel Frequency, Fc = %f\n", get_fchannel(spsgrf_spi));
   printf("\n");
 
   printf("\nType your command: r/w/c reg_num readings\n");

@@ -25,6 +25,7 @@
 #include <libopencm3/stm32/spi.h>
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "spirit1.h"
 
@@ -83,7 +84,7 @@ void change_to_state(SpiritSPI dev, int state_cmd, int state_result) {
 }
 
 // Get Digital clock freq
-float get_fclk(SpiritSPI dev) {
+double get_fclk(SpiritSPI dev) {
   uint8_t data;
   sp1_read(dev, SP1_XO_RCO_TEST, &data, 1, true);
   if ((data & SP1_XO_RCO_TEST_PD_CLKDIV) == 0) {
@@ -143,6 +144,124 @@ set_synth_refdiv_fail:
   assert((D != 1) & (D != 2));
 }
 
+uint32_t _get_synt_from_reg(SpiritSPI dev) {
+  uint32_t synt;
+  uint8_t data;
+
+  sp1_read(dev, SP1_SYNT0, &data, 1, true);
+  data &= ~SP1_SYNT0_BS;
+  synt = data;
+  sp1_read(dev, SP1_SYNT1, &data, 1, true);
+  synt |= (((uint32_t)data) << 8);
+  sp1_read(dev, SP1_SYNT2, &data, 1, true);
+  synt |= (((uint32_t)data) << (8 * 2));
+  sp1_read(dev, SP1_SYNT3, &data, 1, true);
+  data &= ~SP1_SYNT3_WCP;
+  synt |= (((uint32_t)data) << (8 * 3));
+  synt >>= SP1_SYNT0_SYNT4_0;
+  return (synt);
+}
+
+uint8_t _get_bitfield(SpiritSPI dev, uint8_t reg, uint8_t bitfield) {
+  uint8_t data;
+  uint8_t i;
+  sp1_read(dev, reg, &data, 1, true);
+  data &= bitfield;
+  for (i = bitfield; (i & 0x01) == 0; i >>= 1) {
+    data >>= 1;
+  }
+  return (data);
+}
+
+uint8_t _get_D(SpiritSPI dev) {
+  uint8_t D;
+  switch (_get_bitfield(dev, SP1_SYNTH_CONFIG1,
+                        SP1_SYNTH_CONFIG1_REFDIV)) {
+  case 0:
+    D = 1;
+    break;
+  case 1:
+    D = 2;
+    break;
+  default:
+    abort();
+  }
+  return (D);
+}
+
+uint8_t _get_B(SpiritSPI dev) {
+  uint8_t data;
+  uint8_t B;
+  sp1_read(dev, SP1_SYNT0, &data, 1, true);
+  switch (data & SP1_SYNT0_BS) {
+  case 1: // 6
+    B = 6;
+    break;
+  case 3: // 12
+    B = 12;
+    break;
+  case 4: // 16
+    B = 16;
+    break;
+  case 5: // 32
+    B = 32;
+    break;
+  default:
+    abort();
+  }
+  return (B);
+}
+
+double get_fbase(SpiritSPI dev) {
+  uint32_t synt;
+  uint8_t B;
+  uint8_t D;
+  double fbase;
+  synt = _get_synt_from_reg(dev);
+  B = _get_B(dev);
+  D = _get_D(dev);
+  fbase = (dev.fxo / ((B * D) / 2.0)) * synt / pow(2, 18);
+  return (fbase);
+}
+
+int16_t _get_foffset(SpiritSPI dev) {
+  uint8_t data;
+  uint16_t fc_offset;
+  sp1_read(dev, SP1_FC_OFFSET0, &data, 1, true);
+  fc_offset = data;
+  sp1_read(dev, SP1_FC_OFFSET1, &data, 1, true);
+  // 0x0F for masking out the reserved bits
+  fc_offset |= (((uint16_t)(data & 0x0F)) << 8);
+  // Extending the bit sign of the 2s complement 12bit number
+  if ((fc_offset & (1 << (8 + 3))) > 0) {
+    fc_offset |= 0xF000;
+  }
+  return ((uint16_t)fc_offset);
+}
+
+uint8_t _get_channel(SpiritSPI dev) {
+  uint8_t data;
+  sp1_read(dev, SP1_CHNUM, &data, 1, true);
+  return (data);
+}
+
+double _get_channel_spacing(SpiritSPI dev) {
+  uint8_t data;
+  sp1_read(dev, SP1_CHSPACE, &data, 1, true);
+  return (((double)data) * dev.fxo / pow(2.0, 15));
+}
+
+double get_fchannel(SpiritSPI dev) {
+  printf("%f %f %f %f\n", get_fbase(dev), ((double)_get_foffset(dev)),
+         ((double)_get_channel(dev)), _get_channel_spacing(dev));
+  return (get_fbase(dev) + ((double)_get_foffset(dev)) +
+          ((double)_get_channel(dev)) * _get_channel_spacing(dev));
+}
+
+void set_channel(SpiritSPI dev) {
+  sp1_write(dev, SP1_CHNUM, &(dev.channel), 1);
+}
+
 void set_ch_space_steps(SpiritSPI dev, uint8_t steps) {
   printf("Channel spacing: %.2fHz\n", steps * dev.fxo / pow(2, 15));
   sp1_write(dev, SP1_CHSPACE, &steps, 1);
@@ -171,27 +290,31 @@ void set_synt_reg(SpiritSPI dev, uint32_t synt) {
   sp1_write(dev, SP1_SYNT3, &data, 1);
 }
 
-float set_synt(SpiritSPI dev) {
+double set_fbase(SpiritSPI *dev) {
   // Sets Synt value and BS (Band select)
+  // Returns the real fbase set value (not exactly the same)
   int D;
   int B;
   uint8_t BS;
-  float synt;
+  double synt;
   uint32_t isynt;
 
-  if ((dev.fbase > 779000000) && (dev.fbase < 956000000)) {
+  if ((dev->fbase_cmd > 779000000) && (dev->fbase_cmd < 956000000)) {
     BS = 1;
     B = 6;
   } else {
-    if ((dev.fbase > 387000000) && (dev.fbase < 470000000)) {
+    if ((dev->fbase_cmd > 387000000) &&
+        (dev->fbase_cmd < 470000000)) {
       BS = 3;
       B = 12;
     } else {
-      if ((dev.fbase > 300000000) && (dev.fbase < 348000000)) {
+      if ((dev->fbase_cmd > 300000000) &&
+          (dev->fbase_cmd < 348000000)) {
         BS = 4;
         B = 16;
       } else {
-        if ((dev.fbase > 168000000) && (dev.fbase < 170000000)) {
+        if ((dev->fbase_cmd > 168000000) &&
+            (dev->fbase_cmd < 170000000)) {
           BS = 5;
           B = 32;
         } else {
@@ -202,28 +325,28 @@ float set_synt(SpiritSPI dev) {
     }
   }
   printf("B: %d\n", B);
-  sp1_write(dev, SP1_SYNT0, &BS, 1);
-  // TODO: D is selected by Synth_config[1].REFDIV
+  sp1_write(*dev, SP1_SYNT0, &BS, 1);
   for (D = 2; D >= 1; D--) {
-    synt = roundf((dev.fbase / dev.fxo) * pow(2, 18) * B * D / 2.0);
+    synt = roundf((dev->fbase_cmd / dev->fxo) * pow(2, 18) * B * D /
+                  2.0);
     isynt = synt;
     printf("For D: %d, synt: %f, %x\n", D, synt, isynt);
-    if (isynt < pow(2, 26)) {
-      set_synth_refdiv(dev, D);
-      set_synt_reg(dev, isynt);
-      return (isynt);
+    if (isynt < pow(2, 25)) {
+      set_synth_refdiv(*dev, D);
+      set_synt_reg(*dev, isynt);
+      dev->fbase_rd = get_fbase(*dev);
+      return (dev->fbase_rd);
     }
   }
-  // If synt is bigger than 26bit, then use D=2
-  return (synt);
+  abort();
 }
 
-float calc_if_ana(SpiritSPI dev) {
+double calc_if_ana(SpiritSPI dev) {
   // Eq 8 (if_offset_ana)
   return (roundf((SP1_FIF / dev.fxo) * 3.0 * pow(2, 12) - 64));
 }
 
-float calc_if_dig(SpiritSPI dev) {
+double calc_if_dig(SpiritSPI dev) {
   // Eq 9 (if_offset_dig)
   return (roundf((SP1_FIF / get_fclk(dev)) * 3.0 * pow(2, 12) - 64));
 }

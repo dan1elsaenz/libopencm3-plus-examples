@@ -1,6 +1,9 @@
 #ifndef SPIRIT1_H
 #define SPIRIT1_H
 
+// Formulas
+#define FREQ_CH(fbase, foffset, fxo, ch_space_step, channel)
+
 // Commands
 #define SP1_CMD_TX 0x60
 #define SP1_CMD_RX 0x61
@@ -27,6 +30,9 @@
 #define SP1_SYNTH_CONFIG1 0x9E
 #define SP1_SYNTH_CONFIG0 0x9F
 #define SP1_CHSPACE 0x0C
+#define SP1_CHNUM 0x6C
+#define SP1_FC_OFFSET0 0x0F
+#define SP1_FC_OFFSET1 0x0E
 #define SP1_FIFO 0xFF
 
 // Flags
@@ -71,9 +77,11 @@ typedef struct {
   uint16_t spi_cs;
   uint32_t sdnport;
   uint16_t sdnpin;
-  float fxo;
-  float fbase;
+  double fxo;
+  double fbase_cmd;
+  double fbase_rd;
   uint8_t ch_space_steps;
+  uint8_t channel;
 } SpiritSPI;
 
 typedef struct dwrite {
@@ -83,14 +91,25 @@ typedef struct dwrite {
 
 void min_init(SpiritSPI dev);
 void change_to_state(SpiritSPI dev, int state_cmd, int state_result);
-float get_fclk(SpiritSPI dev);
+double get_fclk(SpiritSPI dev);
 void set_clkdiv(SpiritSPI dev);
+double get_fchannel(SpiritSPI dev);
+double _get_channel_spacing(SpiritSPI dev);
+int16_t _get_foffset(SpiritSPI dev);
+uint8_t _get_channel(SpiritSPI dev);
+uint32_t _get_synt_from_reg(SpiritSPI dev);
+uint8_t _get_bitfield(SpiritSPI dev, uint8_t reg, uint8_t bitfield);
+uint8_t _get_B(SpiritSPI dev);
+uint8_t _get_D(SpiritSPI dev);
+void _get_fbase(SpiritSPI dev);
+double get_fbase(SpiritSPI dev);
+void set_channel(SpiritSPI dev);
 void set_ch_space_steps(SpiritSPI dev, uint8_t steps);
 void set_synth_refdiv(SpiritSPI dev, int D);
 void set_synt_reg(SpiritSPI dev, uint32_t synt);
-float set_synt(SpiritSPI dev);
-float calc_if_ana(SpiritSPI dev);
-float calc_if_dig(SpiritSPI dev);
+double set_fbase(SpiritSPI *dev);
+double calc_if_ana(SpiritSPI dev);
+double calc_if_dig(SpiritSPI dev);
 uint16_t get_mc_state(SpiritSPI dev);
 void write_many(SpiritSPI dev, Data_write *list, int n);
 void read_buffer(SpiritSPI dev, unsigned char *buf, int count);
