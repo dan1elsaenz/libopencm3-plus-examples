@@ -67,8 +67,8 @@ PA_POWER[8]
 MOD1 (data rate)
 0x1A: 0x93 -> Mantissa 0x93
 0x1B: 0x1A -> Expo 0xA
--> Datarate of 25000000*(256+0x93*2**0xA)/(2**28)
-== 14042.854309082031
+-> Datarate of 25000000*(256+0x93)*2**0xA/(2**28)
+== 38433.0749512
 
 CHFLT channel filter bandwidth
 0x1D: 0x13 ->  98 * 50000000/26000000

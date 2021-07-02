@@ -162,6 +162,26 @@ uint32_t _get_synt_from_reg(SpiritSPI dev) {
   return (synt);
 }
 
+void _update_bitfield(SpiritSPI dev, uint8_t reg, uint8_t bitfield,
+                      uint8_t value) {
+  uint8_t data;
+  uint8_t i;
+  sp1_read(dev, reg, &data, 1, true);
+  //  printf("%x\n", data);
+  // move new value to bitfield position
+  for (i = bitfield; (i & 0x01) == 0; i >>= 1) {
+    value <<= 1;
+  }
+  //  printf("%x\n", value);
+  // clean bitfield old data
+  data &= ~bitfield;
+  //  printf("%x\n", data);
+  // set new value on bitfield
+  data |= value;
+  //  printf("%x\n", data);
+  sp1_write(dev, reg, &data, 1);
+}
+
 uint8_t _get_bitfield(SpiritSPI dev, uint8_t reg, uint8_t bitfield) {
   uint8_t data;
   uint8_t i;
@@ -349,6 +369,88 @@ double calc_if_ana(SpiritSPI dev) {
 double calc_if_dig(SpiritSPI dev) {
   // Eq 9 (if_offset_dig)
   return (roundf((SP1_FIF / get_fclk(dev)) * 3.0 * pow(2, 12) - 64));
+}
+
+void set_tsplit(SpiritSPI dev) {
+  _update_bitfield(dev, SP1_SYNTH_CONFIG0,
+                   SP1_SYNTH_CONFIG0_SEL_TSPLIT, dev.tsplit);
+}
+
+void tx_ramp(SpiritSPI dev, bool enable) {
+  if (enable) {
+    _update_bitfield(dev, SP1_PA_POWER0, SP1_PA_POWER0_RAMP_ENABLE,
+                     0x1);
+  } else {
+    _update_bitfield(dev, SP1_PA_POWER0, SP1_PA_POWER0_RAMP_ENABLE,
+                     0x0);
+  }
+}
+
+void set_tx_ramp_max_index(SpiritSPI dev) {
+  assert(dev.tx_ramp_max_index <= 7);
+  _update_bitfield(dev, SP1_PA_POWER0, SP1_PA_POWER0_LEVEL_MAX_INDEX,
+                   dev.tx_ramp_max_index);
+}
+
+void set_tx_ramp_step_width(SpiritSPI dev) {
+  assert(dev.tx_ramp_step <= 3);
+  _update_bitfield(dev, SP1_PA_POWER0, SP1_PA_POWER0_RAMP_STEP_WIDTH,
+                   dev.tx_ramp_step);
+}
+
+float get_tx_power(SpiritSPI dev, uint8_t slot) {
+  assert(slot <= 7);
+  uint8_t data;
+  sp1_read(dev, SP1_PA_POWER0 - slot, &data, 1, true);
+  return (11.0 - ((float)data - 1) / 2);
+}
+
+void set_tx_power(SpiritSPI dev, uint8_t slot) {
+  // slot starts with 0 pointing to PA_POWER1 and ascending
+  assert(slot <= 7);
+  uint8_t data;
+  data = 2 * (11.0 - dev.tx_power[slot]) + 1;
+  sp1_write(dev, SP1_PA_POWER0 - slot, &data, 1);
+}
+
+void set_tx_out_capis(SpiritSPI dev) {
+  assert(dev.tx_out_capis <= 3);
+  _update_bitfield(dev, SP1_PA_POWER0, SP1_PA_POWER0_CWC,
+                   dev.tx_out_capis);
+}
+
+void set_datarate(SpiritSPI *dev) {
+  double ef;
+  double mf;
+  uint8_t e;
+  uint8_t m;
+  double tmp;
+  tmp = (dev->datarate_cmd * pow(2, 28) / get_fclk(*dev));
+  // Finding E
+  // Using max M=255, this gives a minimal E:
+  ef = ceil(log2(tmp / (256 + 255)));
+  assert(ef <= 15);
+  mf = round(tmp / pow(2, ef)) - 256;
+  assert(mf < 256);
+  e = (uint8_t)ef;
+  m = (uint8_t)mf;
+  printf("M: %f 0x%02X, E: %f 0x%X\n", mf, m, ef, e);
+  sp1_write(*dev, SP1_MOD1, &m, 1);
+  _update_bitfield(*dev, SP1_MOD0, SP1_MOD0_DATARATE_E, e);
+  dev->datarate_rd = get_datarate(*dev);
+}
+
+double get_datarate(SpiritSPI dev) {
+  uint8_t data;
+  uint8_t datarate_m;
+  uint8_t datarate_e;
+  // read datarate_m
+  sp1_read(dev, SP1_MOD1, &datarate_m, 1, true);
+  // read datarate_e
+  datarate_e = _get_bitfield(dev, SP1_MOD0, SP1_MOD0_DATARATE_E);
+  // Eq 11
+  return (get_fclk(dev) * (256 + ((double)datarate_m)) *
+          pow(2.0, ((double)datarate_e)) / pow(2, 28));
 }
 
 uint16_t get_mc_state(SpiritSPI dev) {

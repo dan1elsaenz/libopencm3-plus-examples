@@ -33,6 +33,17 @@
 #define SP1_CHNUM 0x6C
 #define SP1_FC_OFFSET0 0x0F
 #define SP1_FC_OFFSET1 0x0E
+#define SP1_PA_POWER0 0x18
+#define SP1_PA_POWER1 0x17
+#define SP1_PA_POWER2 0x16
+#define SP1_PA_POWER3 0x15
+#define SP1_PA_POWER4 0x14
+#define SP1_PA_POWER5 0x13
+#define SP1_PA_POWER6 0x12
+#define SP1_PA_POWER7 0x11
+#define SP1_PA_POWER8 0x10
+#define SP1_MOD1 0x1A
+#define SP1_MOD0 0x1B
 #define SP1_FIFO 0xFF
 
 // Flags
@@ -63,6 +74,26 @@
 // SYNTH_CONFIG1 flags
 #define SP1_SYNTH_CONFIG1_REFDIV (1 << 7)
 
+// SYNTH_CONFIG0 flags
+// 0: 1.73ns, 1: 3.47ns
+#define SP1_SYNTH_CONFIG0_SEL_TSPLIT (1 << 7)
+
+// PA_POWER0 flags
+#define SP1_PA_POWER0_CWC (0x3 << 6)
+#define SP1_PA_POWER0_CWC_0pF 0x00
+#define SP1_PA_POWER0_CWC_1pF2 0x01
+#define SP1_PA_POWER0_CWC_2pF4 0x02
+#define SP1_PA_POWER0_CWC_3pF6 0x03
+#define SP1_PA_POWER0_RAMP_ENABLE (0x1 << 5)
+#define SP1_PA_POWER0_RAMP_STEP_WIDTH (0x3 << 3)
+#define SP1_PA_POWER0_LEVEL_MAX_INDEX (0x7 << 0)
+
+// MOD0 flags
+#define SP1_MOD0_CW (1 << 7)
+#define SP1_MOD0_BT_SEL (1 << 6)
+#define SP1_MOD0_MOD_TYPE (0x3 << 4)
+#define SP1_MOD0_DATARATE_E (0xF << 0)
+
 // STATES
 #define SP1_ST_STANDBY 0x40
 #define SP1_ST_SLEEP 0x36
@@ -82,6 +113,15 @@ typedef struct {
   double fbase_rd;
   uint8_t ch_space_steps;
   uint8_t channel;
+  uint8_t tsplit;
+  float tx_power[8];
+  uint8_t tx_out_capis;
+  bool tx_ramp;
+  uint8_t tx_ramp_max_index;
+  uint8_t tx_ramp_step;
+  double datarate_cmd;
+  double datarate_rd;
+
 } SpiritSPI;
 
 typedef struct dwrite {
@@ -91,6 +131,8 @@ typedef struct dwrite {
 
 void min_init(SpiritSPI dev);
 void change_to_state(SpiritSPI dev, int state_cmd, int state_result);
+void set_datarate(SpiritSPI *dev);
+double get_datarate(SpiritSPI dev);
 double get_fclk(SpiritSPI dev);
 void set_clkdiv(SpiritSPI dev);
 double get_fchannel(SpiritSPI dev);
@@ -98,6 +140,8 @@ double _get_channel_spacing(SpiritSPI dev);
 int16_t _get_foffset(SpiritSPI dev);
 uint8_t _get_channel(SpiritSPI dev);
 uint32_t _get_synt_from_reg(SpiritSPI dev);
+void _update_bitfield(SpiritSPI dev, uint8_t reg, uint8_t bitfield,
+                      uint8_t value);
 uint8_t _get_bitfield(SpiritSPI dev, uint8_t reg, uint8_t bitfield);
 uint8_t _get_B(SpiritSPI dev);
 uint8_t _get_D(SpiritSPI dev);
@@ -110,6 +154,13 @@ void set_synt_reg(SpiritSPI dev, uint32_t synt);
 double set_fbase(SpiritSPI *dev);
 double calc_if_ana(SpiritSPI dev);
 double calc_if_dig(SpiritSPI dev);
+void set_tsplit(SpiritSPI dev);
+void tx_ramp(SpiritSPI dev, bool enable);
+void set_tx_ramp_max_index(SpiritSPI dev);
+void set_tx_ramp_step_width(SpiritSPI dev);
+float get_tx_power(SpiritSPI dev, uint8_t slot);
+void set_tx_power(SpiritSPI dev, uint8_t slot);
+void set_tx_out_capis(SpiritSPI dev);
 uint16_t get_mc_state(SpiritSPI dev);
 void write_many(SpiritSPI dev, Data_write *list, int n);
 void read_buffer(SpiritSPI dev, unsigned char *buf, int count);

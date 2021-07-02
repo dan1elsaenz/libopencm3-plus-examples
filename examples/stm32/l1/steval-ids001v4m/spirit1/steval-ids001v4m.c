@@ -43,6 +43,18 @@ SpiritSPI spsgrf_spi = {
   .fbase_rd = 868000000,
   .ch_space_steps = 1, // steps of fxo/(2^15)
   .channel = 1,
+  .tsplit = 1,    // 0: 1.75ns, 1: 3.47ns
+  .tx_power = { // 11.0dBm -> -34dBm (in half dB decrements)
+    // Use -35dBm or smaller to turn output off
+    10, 10, 10, 10, 10, 10, 10, 10
+  },
+
+  .tx_out_capis = SP1_PA_POWER0_CWC_2pF4,
+  .tx_ramp = false,
+  .tx_ramp_max_index = 7, // 0->7
+  .tx_ramp_step = 0,      // 1/8 bit period
+  .datarate_cmd = 1000000,
+  .datarate_rd = 1000000,
 };
 
 /* uint16_t spsgrf_write(uint8_t reg_addr, uint8_t *wr_data, uint8_t

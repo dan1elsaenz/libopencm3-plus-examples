@@ -48,11 +48,11 @@ Data_write transmit_conf_data[] = {
   { 0x0B, 0x99 }, // SYNT *
   { 0x0C, 0x01 }, // Channel Space *
   { 0x6C, 0x00 }, // Channel number *
-  { 0x9F, 0xA0 }, // TSPLIT
-  { 0x10, 0x01 }, // Output power
-  { 0x18, 0x87 }, // Power ramping and Output Load Capacitors
-  { 0x1A, 0x93 }, // Mantissa data rate
-  { 0x1B, 0x1A }, // Exponent data rate, Modulation Type
+  { 0x9F, 0xA0 }, // TSPLIT *
+  { 0x10, 0x01 }, // Output power *
+  { 0x18, 0x87 }, // Power ramping and Output Load Capacitors *
+  { 0x1A, 0x93 }, // Mantissa data rate *
+  { 0x1B, 0x1A }, // Exponent data rate *, Modulation Type
   { 0x1D, 0x13 }, // Channel filter
   { 0x1E, 0xC8 }, // Auto Frequency Correction
   { 0x25, 0x62 }, // Auto Gain Control (AGC)
@@ -292,6 +292,21 @@ int main(void) {
   printf("\n");
   printf("Channel Frequency, Fc = %f\n", get_fchannel(spsgrf_spi));
   printf("\n");
+
+  set_tsplit(spsgrf_spi);
+  set_tx_power(spsgrf_spi, 7);
+  tx_ramp(spsgrf_spi, false);
+  set_tx_ramp_max_index(spsgrf_spi);
+  set_tx_ramp_step_width(spsgrf_spi);
+  set_tx_out_capis(spsgrf_spi);
+
+  printf("Output power: %f\n", get_tx_power(spsgrf_spi, 7));
+
+  printf("Get datarate: %f\n", get_datarate(spsgrf_spi));
+
+  set_datarate(&spsgrf_spi);
+  printf("Get datarate: %f %f\n", get_datarate(spsgrf_spi),
+         spsgrf_spi.datarate_rd);
 
   printf("\nType your command: r/w/c reg_num readings\n");
   printf("(r) read, (w) write, (c) cmd, (s) get status, (b) "
