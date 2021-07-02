@@ -143,6 +143,11 @@ set_synth_refdiv_fail:
   assert((D != 1) & (D != 2));
 }
 
+void set_ch_space_steps(SpiritSPI dev, uint8_t steps) {
+  printf("Channel spacing: %.2fHz\n", steps * dev.fxo / pow(2, 15));
+  sp1_write(dev, SP1_CHSPACE, &steps, 1);
+}
+
 void set_synt_reg(SpiritSPI dev, uint32_t synt) {
   uint8_t data;
   uint8_t tmp;

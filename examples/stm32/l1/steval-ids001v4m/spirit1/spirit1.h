@@ -26,6 +26,7 @@
 #define SP1_SYNT3 0x08
 #define SP1_SYNTH_CONFIG1 0x9E
 #define SP1_SYNTH_CONFIG0 0x9F
+#define SP1_CHSPACE 0x0C
 #define SP1_FIFO 0xFF
 
 // Flags
@@ -72,6 +73,7 @@ typedef struct {
   uint16_t sdnpin;
   float fxo;
   float fbase;
+  uint8_t ch_space_steps;
 } SpiritSPI;
 
 typedef struct dwrite {
@@ -83,6 +85,7 @@ void min_init(SpiritSPI dev);
 void change_to_state(SpiritSPI dev, int state_cmd, int state_result);
 float get_fclk(SpiritSPI dev);
 void set_clkdiv(SpiritSPI dev);
+void set_ch_space_steps(SpiritSPI dev, uint8_t steps);
 void set_synth_refdiv(SpiritSPI dev, int D);
 void set_synt_reg(SpiritSPI dev, uint32_t synt);
 float set_synt(SpiritSPI dev);

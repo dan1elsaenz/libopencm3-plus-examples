@@ -280,6 +280,11 @@ int main(void) {
   set_synt(spsgrf_spi);
   printf("\n");
 
+  printf("\n");
+  printf("Synt\n");
+  set_ch_space_steps(spsgrf_spi, 1);
+  printf("\n");
+
   printf("\nType your command: r/w/c reg_num readings\n");
   printf("(r) read, (w) write, (c) cmd, (s) get status, (b) "
          "read&print buffer\n");

@@ -32,13 +32,16 @@
 #define SPSGRF_CS_PORT GPIOB
 #define SPSGRF_CS GPIO12
 
-SpiritSPI spsgrf_spi = { .spiport = SPI2,
-                         .gpioport = GPIOB,
-                         .spi_cs = GPIO12,
-                         .sdnport = GPIOC,
-                         .sdnpin = GPIO13,
-                         .fxo = 50000000,
-                         .fbase = 868000000 };
+SpiritSPI spsgrf_spi = {
+  .spiport = SPI2,
+  .gpioport = GPIOB,
+  .spi_cs = GPIO12,
+  .sdnport = GPIOC,
+  .sdnpin = GPIO13,
+  .fxo = 50000000,
+  .fbase = 868000000,
+  .ch_space_steps = 1 // steps of fxo/(2^15)
+};
 
 /* uint16_t spsgrf_write(uint8_t reg_addr, uint8_t *wr_data, uint8_t
  * count) { */
