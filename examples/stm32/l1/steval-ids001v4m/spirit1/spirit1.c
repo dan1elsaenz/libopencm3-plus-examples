@@ -466,6 +466,11 @@ void set_chflt(SpiritSPI dev) {
   _update_bitfield(dev, SP1_CHFLT, SP1_CHFLT_E, dev.chflt_e);
 }
 
+void afc_freeze_on_sync(SpiritSPI dev) {
+  _update_bitfield(dev, SP1_AFC2_, SP1_AFC2_FREEZE_ON_SYNC,
+                   dev.afc_freeze_on_sync);
+}
+
 uint16_t get_mc_state(SpiritSPI dev) {
   uint8_t rx_value[2];
   uint16_t state;

@@ -45,6 +45,9 @@
 #define SP1_MOD1 0x1A
 #define SP1_MOD0 0x1B
 #define SP1_CHFLT 0x1D
+#define SP1_AFC2 0x1E
+#define SP1_AFC1 0x1F
+#define SP1_AFC0 0x20
 #define SP1_FIFO 0xFF
 
 // Flags
@@ -105,6 +108,9 @@
 #define SP1_CHFLT_M (0xF << 4)
 #define SP1_CHFLT_E (0xF << 0)
 
+// AFC2 flags
+#define SP1_AFC2_FREEZE_ON_SYNC (1 << 7)
+
 // STATES
 #define SP1_ST_STANDBY 0x40
 #define SP1_ST_SLEEP 0x36
@@ -135,6 +141,7 @@ typedef struct {
   uint8_t mod_type;
   uint8_t chflt_m;
   uint8_t chflt_e;
+  bool adc_freeze_on_sync;
 
 } SpiritSPI;
 

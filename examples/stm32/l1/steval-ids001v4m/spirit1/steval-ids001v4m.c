@@ -58,6 +58,7 @@ SpiritSPI spsgrf_spi = {
   .mod_type= SP1_MOD0_MOD_TYPE_GFSK,
   .chflt_m = 1,
   .chflt_e = 3, // 94.23kHz Table 32/33
+  .adc_freeze_on_sync = true,
 };
 
 /* uint16_t spsgrf_write(uint8_t reg_addr, uint8_t *wr_data, uint8_t
