@@ -76,7 +76,7 @@ CHFLT channel filter bandwidth
 AFC2 Auto Freq Comp
 0x1E: 0xC8 -> AFC_FREEZE_ON_SYNC : ON!
 
-AGCCTRL
+AGCCTRL1
 0x25: 0x62  -> Thresh low, lower!
 
 ANT_SEL_CONF (parece no necesario) (para switchear antenas)

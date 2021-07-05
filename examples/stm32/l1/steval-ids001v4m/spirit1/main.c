@@ -54,7 +54,7 @@ Data_write transmit_conf_data[] = {
   { 0x1A, 0x93 }, // Mantissa data rate *
   { 0x1B, 0x1A }, // Exponent data rate *, Modulation Type *
   { 0x1D, 0x13 }, // Channel filter *
-  { 0x1E, 0xC8 }, // Auto Frequency Correction
+  { 0x1E, 0xC8 }, // Auto Frequency Correction *
   { 0x25, 0x62 }, // Auto Gain Control (AGC)
   { 0x27, 0x15 }, // RXFIFO filling depends on Carrier Sense threshold
   { 0x32, 0x3F }, // Preamble length, sync_length, packet length mode

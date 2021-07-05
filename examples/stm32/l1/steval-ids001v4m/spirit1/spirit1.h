@@ -48,6 +48,33 @@
 #define SP1_AFC2 0x1E
 #define SP1_AFC1 0x1F
 #define SP1_AFC0 0x20
+#define SP1_AGCCTRL0 0x26
+#define SP1_AGCCTRL1 0x25
+#define SP1_AGCCTRL2 0x24
+#define SP1_ANT_SELECT_CONF 0x27
+#define SP1_PCKTCTRL1 0x33
+#define SP1_PCKTCTRL2 0x32
+#define SP1_PCKTCTRL3 0x31
+#define SP1_PCKTCTRL4 0x30
+#define SP1_PCKTLEN0 0x35
+#define SP1_PCKTLEN1 0x34
+#define SP1_PCKT_FLT_OPTIONS 0x4F
+#define SP1_PROTOCOL0 0x52
+#define SP1_PROTOCOL1 0x51
+#define SP1_PROTOCOL2 0x50
+#define SP1_TX_PCKT_INFO 0xC2
+#define SP1_RX_PCKT_INFO 0xC3
+#define SP1_AFC_CORR 0xC4
+#define SP1_LINK_QUALIF2 0xC5
+#define SP1_LINK_QUALIF1 0xC6
+#define SP1_LINK_QUALIF0 0xC7
+#define SP1_RSSI_LEVEL 0xC8
+#define SP1_RX_PCKT_LEN1 0xC9
+#define SP1_RX_PCKT_LEN0 0xCA
+#define SP1_LINEAR_FIFO_STATUS1 0xE6
+#define SP1_LINEAR_FIFO_STATUS0 0xE7
+#define SP1_DEVICE_INFO1 0xF0
+#define SP1_DEVICE_INFO0 0xF1
 #define SP1_FIFO 0xFF
 
 // Flags
@@ -110,6 +137,71 @@
 
 // AFC2 flags
 #define SP1_AFC2_FREEZE_ON_SYNC (1 << 7)
+#define SP1_AFC2_ENABLE (1 << 6)
+#define SP1_AFC2_MODE (1 << 5)
+#define SP1_AFC2_PD_LEAKAGE (0x1F << 0)
+
+// AGC flags
+#define SP1_AGCCTRL0_ENABLE (1 << 7)
+#define SP1_AGCCTRL1_TH_HIGH (0xF << 4)
+#define SP1_AGCCTRL1_TH_LOW (0xF << 0)
+#define SP1_AGCCTRL2_MEAS_TIME (0xF << 0)
+
+// Ant Sel Conf flags
+#define SP1_ANT_SELECT_CONF_CS_BLANKING (1 << 4)
+#define SP1_ANT_SELECT_CONF_ENABLE (3 << 4)
+#define SP1_ANT_SELECT_CONF_MEAS_TIME (0x7 << 0)
+
+// PCKTCTRL flags
+#define SP1_PCKTCTRL1_CRC_MODE (0x7 << 5)
+#define SP1_PCKTCTRL1_WHIT_EN (1 << 4)
+#define SP1_PCKTCTRL1_TXSOURCE (0x3 << 2)
+#define SP1_PCKTCTRL1_FEC_EN (1 << 0)
+#define SP1_PCKTCTRL2_PREAMBLE_LENGTH (0x1F << 3)
+#define SP1_PCKTCTRL2_SYNC_LENGTH (0x3 << 1)
+#define SP1_PCKTCTRL2_FIX_VAR_LEN (1 << 0)
+#define SP1_PCKTCTRL3_PCKT_FRMT (0x3 << 6)
+#define SP1_PCKTCTRL3_RX_MODE (0x3 << 4)
+#define SP1_PCKTCTRL3_LEN_WID (0xF << 0)
+#define SP1_PCKTCTRL4_ADDRESS_LEN (0x3 << 3)
+#define SP1_PCKTCTRL4_CONTROL_LEN (0x7 << 0)
+
+// PROTOCOL flags
+#define SP1_PROTOCOL0_NMAX_RETX (0xF << 4)
+#define SP1_PROTOCOL0_NACK_TX (1 << 3)
+#define SP1_PROTOCOL0_AUTO_ACK (1 << 2)
+#define SP1_PROTOCOL0_PERS_RX (1 << 1)
+#define SP1_PROTOCOL0_PERS_TX (1 << 0)
+#define SP1_PROTOCOL1_LDC_RELOAD_ON_SYNC (1 << 7)
+#define SP1_PROTOCOL1_PIGGYBACKING (1 << 6)
+#define SP1_PROTOCOL1_SEED_RELOAD (1 << 3)
+#define SP1_PROTOCOL1_CSMA_ON (1 << 2)
+#define SP1_PROTOCOL1_CSMA_PERS_ON (1 << 1)
+#define SP1_PROTOCOL1_AUTO_PCKT_FLT (1 << 0)
+#define SP1_PROTOCOL2_CS_TIMEOUT_MASK (1 << 7)
+#define SP1_PROTOCOL2_SQI_TIMEOUT_MASK (1 << 6)
+#define SP1_PROTOCOL2_PQI_TIMEOUT_MASK (1 << 5)
+#define SP1_PROTOCOL2_TX_SEQ_NUM_RELOAD (0x3 << 3)
+#define SP1_PROTOCOL2_RCO_CALIBRATION (1 << 2)
+#define SP1_PROTOCOL2_VCO_CALIBRATION (1 << 1)
+#define SP1_PROTOCOL2_LDC_MODE (1 << 0)
+
+// TX pckt info flags
+#define SP1_TX_PCKT_INFO_TX_SEQ_NUM (0x3 << 4)
+#define SP1_TX_PCKT_INFO_N_RETX (0xF << 0)
+
+// TX pckt info flags
+#define SP1_RX_PCKT_INFO_NACK_RX (1 << 2)
+#define SP1_RX_PCKT_INFO_RX_SEQ_NUM (0x3 << 0)
+
+// Link qualif flags
+#define SP1_LINK_QUALIF1_CS (1 << 7)
+#define SP1_LINK_QUALIF1_SQI (0x7F << 0)
+#define SP1_LINK_QUALIF0_AGC_WORD (0xF << 0)
+
+// Linear fifo status flags
+#define SP1_LINEAR_FIFO_STATUS1_ELEM_TXFIFO (0x7F << 0)
+#define SP1_LINEAR_FIFO_STATUS0_ELEM_RXFIFO (0x7F << 0)
 
 // STATES
 #define SP1_ST_STANDBY 0x40
@@ -118,6 +210,41 @@
 #define SP1_ST_LOCK 0x0F
 #define SP1_ST_RX 0x33
 #define SP1_ST_TX 0x5f
+
+typedef enum {
+  RX_TIMEOUT_AND_OR_SELECT = (1 << 6),
+  CONTROL_FILTERING = (1 << 5),
+  SOURCE_FILTERING = (1 << 4),
+  DEST_VS_SOURCE_ADDR = (1 << 3),
+  DEST_VS_MULTICAST_ADDR = (1 << 2),
+  DEST_VS_BROADCAST_ADDR = (1 << 1),
+  CRC_CHECK = (1 << 0)
+} Pckt_flt_options;
+
+typedef enum {
+  AFC_SLICER, //
+  AFC_2ND_CONV_STAGE
+} Afc_mode;
+
+typedef enum {
+  PCKT_CRC_NONE,
+  PCKT_CRC_0x07,
+  PCKT_CRC_0x8005,
+  PCKT_CRC_0x1021,
+  PCKT_CRC_0x864CBF
+} Pckt_crc_mode;
+
+typedef enum {
+  PCKT_FRMT_Basic = 0x0,
+  PCKT_FRMT_WM_bus = 0x2,
+  PCKT_FRMT_STack = 0x3,
+} Pckt_frmt;
+
+typedef enum {
+  PCKT_RX_MODE_Normal = 0x0,
+  PCKT_RX_MODE_DIRECT_FIFO = 0x1,
+  PCKT_RX_MODE_DIRECT_GPIO = 0x2,
+} Pckt_rx_mode;
 
 typedef struct {
   uint32_t spiport;
@@ -141,8 +268,41 @@ typedef struct {
   uint8_t mod_type;
   uint8_t chflt_m;
   uint8_t chflt_e;
-  bool adc_freeze_on_sync;
-
+  bool afc;
+  bool afc_freeze_on_sync;
+  Afc_mode afc_mode;
+  bool agc;
+  uint8_t agc_th_high;
+  uint8_t agc_th_low;
+  bool ant_sel_cs_blanking;
+  bool pckt_whitening;
+  Pckt_crc_mode pckt_crc_mode;
+  uint8_t pckt_preamble_len;
+  uint16_t pckt_len; // 2 bytes long
+  Pckt_flt_options pckt_flt_options;
+  uint8_t protocol_nmax_retx;
+  bool protocol_nack_tx;
+  bool protocol_auto_ack;
+  bool protocol_pers_rx;
+  bool protocol_pers_tx;
+  bool protocol_ldc_reload_on_sync;
+  bool protocol_piggybacking;
+  bool protocol_seed_reload;
+  bool protocol_csma_on;
+  bool protocol_csma_pers_on;
+  bool protocol_auto_pckt_flt;
+  bool protocol_cs_timeout_mask;
+  bool protocol_sqi_timeout_mask;
+  bool protocol_pqi_timeout_mask;
+  uint8_t protocol_tx_seq_num_reload;
+  bool protocol_rco_calib;
+  bool protocol_vco_calib;
+  bool protocol_ldc_mode;
+  Pckt_frmt pckt_frmt;
+  uint8_t pckt_addr_len;
+  Pckt_rx_mode pckt_rx_mode;
+  uint8_t partnum;
+  uint8_t version;
 } SpiritSPI;
 
 typedef struct dwrite {
@@ -151,6 +311,40 @@ typedef struct dwrite {
 } Data_write;
 
 void min_init(SpiritSPI dev);
+void set_chflt(SpiritSPI dev);
+uint8_t get_rx_afc_corr(SpiritSPI dev);
+uint8_t get_rx_PQI(SpiritSPI dev);
+uint8_t get_rx_cs_indication(SpiritSPI dev);
+uint8_t get_rx_SQI(SpiritSPI dev);
+uint8_t get_rx_agc_word(SpiritSPI dev);
+uint8_t get_rx_RSSI_level(SpiritSPI dev);
+uint16_t get_rx_pckt_len(SpiritSPI dev);
+uint8_t get_elem_txfifo(SpiritSPI dev);
+uint8_t get_elem_rxfifo(SpiritSPI dev);
+void get_device_info(SpiritSPI dev);
+void print_device_info(SpiritSPI dev);
+uint8_t get_tx_seq_num(SpiritSPI dev);
+uint8_t get_n_retx(SpiritSPI dev);
+uint8_t get_rx_seq_num(SpiritSPI dev);
+uint8_t get_nack_rx(SpiritSPI dev);
+void rco_calib(SpiritSPI dev, bool enable);
+void vco_calib(SpiritSPI dev, bool enable);
+void set_protocol_flags(SpiritSPI dev);
+void set_pckt_flt_options(SpiritSPI dev);
+void set_pckt_len(SpiritSPI dev);
+void set_pckt_preamble_len(SpiritSPI dev);
+void set_pckt_crc_mode(SpiritSPI dev);
+void set_pckt_whitening(SpiritSPI dev);
+void set_pckt_format(SpiritSPI dev);
+void set_pckt_rx_mode(SpiritSPI dev);
+void set_pckt_addr_len(SpiritSPI dev);
+void set_cs_blanking(SpiritSPI dev);
+void set_agc_th_high(SpiritSPI dev);
+void set_agc_th_low(SpiritSPI dev);
+void agc_enable(SpiritSPI dev);
+void afc_freeze_on_sync(SpiritSPI dev);
+void afc_enable(SpiritSPI dev);
+void afc_mode(SpiritSPI dev);
 void change_to_state(SpiritSPI dev, int state_cmd, int state_result);
 void set_mod_type(SpiritSPI dev);
 uint8_t get_mod_type(SpiritSPI dev);
@@ -186,6 +380,7 @@ void set_tx_power(SpiritSPI dev, uint8_t slot);
 void set_tx_out_capis(SpiritSPI dev);
 uint16_t get_mc_state(SpiritSPI dev);
 void write_many(SpiritSPI dev, Data_write *list, int n);
+void write_buffer(SpiritSPI dev, unsigned char *buf, int count);
 void read_buffer(SpiritSPI dev, unsigned char *buf, int count);
 char *get_state_str(uint8_t state);
 void print_sp1_status(uint16_t status);

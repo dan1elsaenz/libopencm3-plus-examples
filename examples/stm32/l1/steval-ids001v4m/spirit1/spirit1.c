@@ -58,9 +58,15 @@ void write_many(SpiritSPI dev, Data_write *list, int n) {
   }
 }
 
+void write_buffer(SpiritSPI dev, unsigned char *buf, int count) {
+  sp1_write(dev, SP1_FIFO, buf, count);
+  // TODO: maybe write fifo_length
+}
+
 void read_buffer(SpiritSPI dev, unsigned char *buf, int count) {
   sp1_read(dev, SP1_FIFO, buf, count, false);
   buf[count] = '\0';
+  // TODO: maybe read and use fifo_length
 }
 
 Data_write min_init_data[] = {
@@ -461,14 +467,232 @@ double get_datarate(SpiritSPI dev) {
           pow(2.0, ((double)datarate_e)) / pow(2, 28));
 }
 
+uint8_t get_tx_seq_num(SpiritSPI dev) {
+  return (_get_bitfield(dev, SP1_TX_PCKT_INFO,
+                        SP1_TX_PCKT_INFO_TX_SEQ_NUM));
+}
+
+uint8_t get_n_retx(SpiritSPI dev) {
+  return (
+      _get_bitfield(dev, SP1_TX_PCKT_INFO, SP1_TX_PCKT_INFO_N_RETX));
+}
+
+uint8_t get_rx_seq_num(SpiritSPI dev) {
+  return (_get_bitfield(dev, SP1_RX_PCKT_INFO,
+                        SP1_RX_PCKT_INFO_RX_SEQ_NUM));
+}
+
+uint8_t get_nack_rx(SpiritSPI dev) {
+  return (
+      _get_bitfield(dev, SP1_RX_PCKT_INFO, SP1_RX_PCKT_INFO_NACK_RX));
+}
+
+uint8_t get_rx_afc_corr(SpiritSPI dev) {
+  uint8_t data;
+  sp1_read(dev, SP1_AFC_CORR, &data, 1, true);
+  return (data);
+}
+
+uint8_t get_rx_PQI(SpiritSPI dev) {
+  uint8_t data;
+  sp1_read(dev, SP1_LINK_QUALIF2, &data, 1, true);
+  return (data);
+}
+
+uint8_t get_rx_cs_indication(SpiritSPI dev) {
+  return (_get_bitfield(dev, SP1_LINK_QUALIF1, SP1_LINK_QUALIF1_CS));
+}
+
+uint8_t get_rx_SQI(SpiritSPI dev) {
+  return (_get_bitfield(dev, SP1_LINK_QUALIF1, SP1_LINK_QUALIF1_SQI));
+}
+
+uint8_t get_rx_agc_word(SpiritSPI dev) {
+  return (_get_bitfield(dev, SP1_LINK_QUALIF0,
+                        SP1_LINK_QUALIF0_AGC_WORD));
+}
+
+uint8_t get_rx_RSSI_level(SpiritSPI dev) {
+  uint8_t data;
+  sp1_read(dev, SP1_RSSI_LEVEL, &data, 1, true);
+  return (data);
+}
+
+uint16_t get_rx_pckt_len(SpiritSPI dev) {
+  uint8_t data[2];
+  uint16_t out;
+  sp1_read(dev, SP1_RX_PCKT_LEN1, data, 2, true);
+  out = data[0] | (((uint16_t)data[1]) << 8);
+  return (out);
+}
+
+uint8_t get_elem_txfifo(SpiritSPI dev) {
+  return (_get_bitfield(dev, SP1_LINEAR_FIFO_STATUS1,
+                        SP1_LINEAR_FIFO_STATUS1_ELEM_TXFIFO));
+}
+
+uint8_t get_elem_rxfifo(SpiritSPI dev) {
+  return (_get_bitfield(dev, SP1_LINEAR_FIFO_STATUS0,
+                        SP1_LINEAR_FIFO_STATUS0_ELEM_RXFIFO));
+}
+
+void get_device_info(SpiritSPI dev) {
+  uint8_t data;
+  sp1_read(dev, SP1_DEVICE_INFO1, &data, 1, true);
+  dev.partnum = data;
+  sp1_read(dev, SP1_DEVICE_INFO0, &data, 1, true);
+  dev.version = data;
+}
+
+void print_device_info(SpiritSPI dev) {
+  get_device_info(dev);
+  printf("Part Number: 0x%02X, Version: 0x%02X\n", dev.partnum,
+         dev.version);
+}
+
+void rco_calib(SpiritSPI dev, bool enable) {
+  _update_bitfield(dev, SP1_PROTOCOL2, SP1_PROTOCOL2_RCO_CALIBRATION,
+                   enable);
+}
+void vco_calib(SpiritSPI dev, bool enable) {
+  _update_bitfield(dev, SP1_PROTOCOL2, SP1_PROTOCOL2_VCO_CALIBRATION,
+                   enable);
+}
+
+void set_protocol_flags(SpiritSPI dev) {
+  _update_bitfield(dev, SP1_PROTOCOL0, SP1_PROTOCOL0_NACK_TX,
+                   dev.protocol_nack_tx);
+  _update_bitfield(dev, SP1_PROTOCOL0, SP1_PROTOCOL0_AUTO_ACK,
+                   dev.protocol_auto_ack);
+  _update_bitfield(dev, SP1_PROTOCOL0, SP1_PROTOCOL0_PERS_RX,
+                   dev.protocol_pers_rx);
+  _update_bitfield(dev, SP1_PROTOCOL0, SP1_PROTOCOL0_PERS_TX,
+                   dev.protocol_pers_tx);
+  _update_bitfield(dev, SP1_PROTOCOL1,
+                   SP1_PROTOCOL1_LDC_RELOAD_ON_SYNC,
+                   dev.protocol_ldc_reload_on_sync);
+  _update_bitfield(dev, SP1_PROTOCOL1, SP1_PROTOCOL1_PIGGYBACKING,
+                   dev.protocol_piggybacking);
+  _update_bitfield(dev, SP1_PROTOCOL1, SP1_PROTOCOL1_SEED_RELOAD,
+                   dev.protocol_seed_reload);
+  _update_bitfield(dev, SP1_PROTOCOL1, SP1_PROTOCOL1_CSMA_ON,
+                   dev.protocol_csma_on);
+  _update_bitfield(dev, SP1_PROTOCOL1, SP1_PROTOCOL1_CSMA_PERS_ON,
+                   dev.protocol_csma_pers_on);
+  _update_bitfield(dev, SP1_PROTOCOL1, SP1_PROTOCOL1_AUTO_PCKT_FLT,
+                   dev.protocol_auto_pckt_flt);
+  _update_bitfield(dev, SP1_PROTOCOL2, SP1_PROTOCOL2_CS_TIMEOUT_MASK,
+                   dev.protocol_cs_timeout_mask);
+  _update_bitfield(dev, SP1_PROTOCOL2, SP1_PROTOCOL2_SQI_TIMEOUT_MASK,
+                   dev.protocol_sqi_timeout_mask);
+  _update_bitfield(dev, SP1_PROTOCOL2, SP1_PROTOCOL2_PQI_TIMEOUT_MASK,
+                   dev.protocol_pqi_timeout_mask);
+  _update_bitfield(dev, SP1_PROTOCOL2, SP1_PROTOCOL2_RCO_CALIBRATION,
+                   dev.protocol_rco_calib);
+  _update_bitfield(dev, SP1_PROTOCOL2, SP1_PROTOCOL2_VCO_CALIBRATION,
+                   dev.protocol_vco_calib);
+  _update_bitfield(dev, SP1_PROTOCOL2, SP1_PROTOCOL2_LDC_MODE,
+                   dev.protocol_ldc_mode);
+}
+
+void set_pckt_flt_options(SpiritSPI dev) {
+  uint8_t data;
+  data = dev.pckt_flt_options;
+  sp1_write(dev, SP1_PCKT_FLT_OPTIONS, &data, 1);
+}
+
+void set_pckt_len(SpiritSPI dev) {
+  uint8_t data;
+  data = dev.pckt_len & 0x00FF;
+  sp1_write(dev, SP1_PCKTLEN0, &data, 1);
+  data = (dev.pckt_len & 0xFF) >> 8;
+  sp1_write(dev, SP1_PCKTLEN1, &data, 1);
+}
+
+void set_pckt_preamble_len(SpiritSPI dev) {
+  _update_bitfield(dev, SP1_PCKTCTRL2, SP1_PCKTCTRL2_PREAMBLE_LENGTH,
+                   dev.pckt_preamble_len);
+}
+
+void set_pckt_crc_mode(SpiritSPI dev) {
+  _update_bitfield(dev, SP1_PCKTCTRL1, SP1_PCKTCTRL1_CRC_MODE,
+                   dev.pckt_crc_mode);
+}
+
+void set_pckt_whitening(SpiritSPI dev) {
+  if (dev.pckt_whitening) {
+    _update_bitfield(dev, SP1_PCKTCTRL1, SP1_PCKTCTRL1_WHIT_EN, 0x1);
+  } else {
+    _update_bitfield(dev, SP1_PCKTCTRL1, SP1_PCKTCTRL1_WHIT_EN, 0x0);
+  }
+}
+
+void set_pckt_format(SpiritSPI dev) {
+  _update_bitfield(dev, SP1_PCKTCTRL3, SP1_PCKTCTRL3_PCKT_FRMT,
+                   dev.pckt_frmt);
+}
+
+void set_pckt_rx_mode(SpiritSPI dev) {
+  _update_bitfield(dev, SP1_PCKTCTRL3, SP1_PCKTCTRL3_RX_MODE,
+                   dev.pckt_rx_mode);
+}
+
+void set_pckt_addr_len(SpiritSPI dev) {
+  _update_bitfield(dev, SP1_PCKTCTRL4, SP1_PCKTCTRL4_ADDRESS_LEN,
+                   dev.pckt_addr_len);
+}
+
 void set_chflt(SpiritSPI dev) {
   _update_bitfield(dev, SP1_CHFLT, SP1_CHFLT_M, dev.chflt_m);
   _update_bitfield(dev, SP1_CHFLT, SP1_CHFLT_E, dev.chflt_e);
 }
 
+void set_cs_blanking(SpiritSPI dev) {
+  if (dev.ant_sel_cs_blanking) {
+    _update_bitfield(dev, SP1_ANT_SELECT_CONF,
+                     SP1_ANT_SELECT_CONF_CS_BLANKING, 0x1);
+  } else {
+    _update_bitfield(dev, SP1_ANT_SELECT_CONF,
+                     SP1_ANT_SELECT_CONF_CS_BLANKING, 0x0);
+  }
+}
+
+void set_agc_th_high(SpiritSPI dev) {
+  _update_bitfield(dev, SP1_AGCCTRL1, SP1_AGCCTRL1_TH_HIGH,
+                   dev.agc_th_high);
+}
+
+void set_agc_th_low(SpiritSPI dev) {
+  _update_bitfield(dev, SP1_AGCCTRL1, SP1_AGCCTRL1_TH_LOW,
+                   dev.agc_th_low);
+}
+
+void agc_enable(SpiritSPI dev) {
+  if (dev.agc) {
+    _update_bitfield(dev, SP1_AGCCTRL0, SP1_AGCCTRL0_ENABLE, 0x1);
+  } else {
+    _update_bitfield(dev, SP1_AGCCTRL0, SP1_AGCCTRL0_ENABLE, 0x0);
+  }
+}
+
+void afc_enable(SpiritSPI dev) {
+  if (dev.afc) {
+    _update_bitfield(dev, SP1_AFC2, SP1_AFC2_ENABLE, 0x1);
+  } else {
+    _update_bitfield(dev, SP1_AFC2, SP1_AFC2_ENABLE, 0x0);
+  }
+}
+
+void afc_mode(SpiritSPI dev) {
+  _update_bitfield(dev, SP1_AFC2, SP1_AFC2_MODE, dev.afc_mode);
+}
+
 void afc_freeze_on_sync(SpiritSPI dev) {
-  _update_bitfield(dev, SP1_AFC2_, SP1_AFC2_FREEZE_ON_SYNC,
-                   dev.afc_freeze_on_sync);
+  if (dev.afc_freeze_on_sync) {
+    _update_bitfield(dev, SP1_AFC2, SP1_AFC2_FREEZE_ON_SYNC, 0x1);
+  } else {
+    _update_bitfield(dev, SP1_AFC2, SP1_AFC2_FREEZE_ON_SYNC, 0x0);
+  }
 }
 
 uint16_t get_mc_state(SpiritSPI dev) {
