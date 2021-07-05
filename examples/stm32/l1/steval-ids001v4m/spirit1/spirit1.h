@@ -445,6 +445,6 @@ uint8_t get_elem_txfifo(SpiritSPI dev);
 uint8_t get_elem_rxfifo(SpiritSPI dev);
 void write_buffer(SpiritSPI dev, SpiritConf *conf, unsigned char *buf,
                   uint8_t max_count);
-void read_buffer(SpiritSPI dev, unsigned char *buf, int count);
+void read_buffer(SpiritSPI dev, unsigned char *buf);
 
 #endif // SPIRIT1_H

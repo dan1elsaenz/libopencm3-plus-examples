@@ -41,6 +41,7 @@
 #define TX() sp1_cmd(spsgrf_spi, SP1_CMD_TX)
 #define RX() sp1_cmd(spsgrf_spi, SP1_CMD_RX)
 
+// Basic packet! Variable Length
 SpiritConf spirit_conf = {
   .fbase_cmd = 868000000,
   .fbase_rd = 868000000,
@@ -407,9 +408,9 @@ int main(void) {
         status = sp1_read(spsgrf_spi, SP1_LINEAR_FIFO_STATUS,
                           rx_values, 2, true);
         temp = (rx_values[1] << 8) | rx_values[0];
-        rxfifo_count = SP1_LINEAR_FIFO_STATUS_RXCOUNT(temp);
-        printf("RX buffer count: %d\n", rxfifo_count);
-        read_buffer(spsgrf_spi, rx_buf, rxfifo_count);
+        printf("RX buffer count: %d\n", get_elem_rxfifo(spsgrf_spi));
+        rx_buf[get_elem_rxfifo(spsgrf_spi)] = '\0';
+        read_buffer(spsgrf_spi, rx_buf);
         printf("Received data:\n");
         printf("%s\n", rx_buf);
         printf("--------\n");

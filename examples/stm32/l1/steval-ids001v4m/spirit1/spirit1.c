@@ -80,10 +80,8 @@ void write_buffer(SpiritSPI dev, SpiritConf *conf, unsigned char *buf,
   }
 }
 
-void read_buffer(SpiritSPI dev, unsigned char *buf, int count) {
-  sp1_read(dev, SP1_FIFO, buf, count, false);
-  buf[count] = '\0';
-  // TODO: maybe read and use fifo_length
+void read_buffer(SpiritSPI dev, unsigned char *buf) {
+  sp1_read(dev, SP1_FIFO, buf, get_elem_rxfifo(dev), false);
 }
 
 Data_write min_init_data[] = {
