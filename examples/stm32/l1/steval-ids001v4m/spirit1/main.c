@@ -41,11 +41,12 @@
 SpiritConf spirit_conf = {
   .fbase_cmd = 868000000,
   .fbase_rd = 868000000,
-  .ch_space_steps = 1, // steps of fxo/(2^15)
-  .channel = 1,
+  .ch_space_steps = 53, // steps of fxo/(2^15)
+  .channel = 0,
   .tsplit = 1,    // 0: 1.75ns, 1: 3.47ns
   .tx_power = { // 11.0dBm -> -34dBm (in half dB decrements)
     // Use -35dBm or smaller to turn output off
+    // Starts in PA_POWER1 and ends in PA_POWER8
     10, 10, 10, 10, 10, 10, 10, 10
   },
 
@@ -53,9 +54,10 @@ SpiritConf spirit_conf = {
   .tx_ramp = false,
   .tx_ramp_max_index = 7, // 0->7
   .tx_ramp_step = 0,      // 1/8 bit period
-  .datarate_cmd = 1000000,
-  .datarate_rd = 1000000,
+  .datarate_cmd = 40000,
+  .datarate_rd = 0,
   .mod_type= SP1_MOD0_MOD_TYPE_GFSK,
+  .h_index=1,
   .chflt_m = 1,
   .chflt_e = 3, // 94.23kHz Table 32/33
   .afc = true,
@@ -312,12 +314,16 @@ int main(void) {
   int read_counts;
   int write_counts;
 
-  printf("\nExecuting writing sequence!!!\n");
-  write_many(spsgrf_spi, transmit_conf_data,
-             sizeof(transmit_conf_data) / sizeof(Data_write));
+  /* printf("\nExecuting writing sequence!!!\n"); */
+  /* write_many(spsgrf_spi, transmit_conf_data, */
+  /*            sizeof(transmit_conf_data) / sizeof(Data_write)); */
 
   init_spirit_spi(spsgrf_spi);
   init_spirit(spsgrf_spi, spirit_conf);
+
+  printf("Calibrating!\n");
+  rco_calib(spsgrf_spi, true);
+  vco_calib(spsgrf_spi, true);
 
   printf("\nType your command: r/w/c reg_num readings\n");
   printf("(r) read, (w) write, (c) cmd, (s) get status, (b) "

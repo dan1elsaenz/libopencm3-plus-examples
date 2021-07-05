@@ -205,3 +205,12 @@ TX:
     0xFF: Write data
     TX command
     read from 0xFF the piggybacked data
+
+
+
+
+---- Misc
+FDEV
+0x1C: 0x45
+E = 4
+M = 5

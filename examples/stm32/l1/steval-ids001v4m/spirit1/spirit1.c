@@ -89,6 +89,14 @@ void change_to_state(SpiritSPI dev, int state_cmd, int state_result) {
   printf("Now in %s\n", get_state_str(state_result));
 }
 
+void set_if(SpiritSPI dev) {
+  uint8_t tmp;
+  tmp = calc_if_ana(dev);
+  sp1_write(dev, SP1_IF_OFFSET_ANA, &tmp, 1);
+  tmp = calc_if_dig(dev);
+  sp1_write(dev, SP1_IF_OFFSET_DIG, &tmp, 1);
+}
+
 // Get Digital clock freq
 double get_fclk(SpiritSPI dev) {
   uint8_t data;
@@ -110,11 +118,12 @@ void set_clkdiv(SpiritSPI dev) {
   // If fxo 24-26MHz, disable divider
   // Must go to standby mode before changing
   uint8_t data;
+  printf("Changing to Standby mode before setting devider\n");
   change_to_state(dev, SP1_CMD_STANDBY, SP1_ST_STANDBY);
   sp1_read(dev, SP1_XO_RCO_TEST, &data, 1, true);
   if ((dev.fxo > FXO_50M_L) && (dev.fxo < FXO_50M_H)) {
     // divide by 2
-    printf("Freq around 50MHz: dividing by 2\n");
+    printf("Crystal around 50MHz: dividing by 2 for fclk\n");
     data &= ~SP1_XO_RCO_TEST_PD_CLKDIV; // enable divider
     sp1_write(dev, SP1_XO_RCO_TEST, &data, 1);
   } else {
@@ -278,8 +287,10 @@ double _get_channel_spacing(SpiritSPI dev) {
 }
 
 double get_fchannel(SpiritSPI dev) {
-  printf("%f %f %f %f\n", get_fbase(dev), ((double)_get_foffset(dev)),
-         ((double)_get_channel(dev)), _get_channel_spacing(dev));
+  /* printf("%f %f %f %f\n", get_fbase(dev),
+   * ((double)_get_foffset(dev)), */
+  /*        ((double)_get_channel(dev)), _get_channel_spacing(dev));
+   */
   return (get_fbase(dev) + ((double)_get_foffset(dev)) +
           ((double)_get_channel(dev)) * _get_channel_spacing(dev));
 }
@@ -288,9 +299,11 @@ void set_channel(SpiritSPI dev, SpiritConf conf) {
   sp1_write(dev, SP1_CHNUM, &(conf.channel), 1);
 }
 
-void set_ch_space_steps(SpiritSPI dev, uint8_t steps) {
-  printf("Channel spacing: %.2fHz\n", steps * dev.fxo / pow(2, 15));
-  sp1_write(dev, SP1_CHSPACE, &steps, 1);
+void set_ch_space_steps(SpiritSPI dev, SpiritConf conf) {
+  printf("Desired channel spacing: %.2fHz (for %d steps)\n",
+         conf.ch_space_steps * dev.fxo / pow(2, 15),
+         conf.ch_space_steps);
+  sp1_write(dev, SP1_CHSPACE, &(conf.ch_space_steps), 1);
 }
 
 void set_synt_reg(SpiritSPI dev, uint32_t synt) {
@@ -351,15 +364,17 @@ double set_fbase(SpiritSPI dev, SpiritConf *conf) {
       }
     }
   }
-  printf("B: %d\n", B);
+  printf("B: %d, setting BS to 0x%X\n", B, BS);
   sp1_write(dev, SP1_SYNT0, &BS, 1);
   for (D = 2; D >= 1; D--) {
     synt = roundf((conf->fbase_cmd / dev.fxo) * pow(2, 18) * B * D /
                   2.0);
     isynt = synt;
-    printf("For D: %d, synt: %f, %x\n", D, synt, isynt);
+    printf("Trying D: %d, synt: %d, 0x%X\n", D, (int)synt, isynt);
     if (isynt < pow(2, 25)) {
+      printf("D: %d selected, setting Synth REFDIV\n", D);
       set_synth_refdiv(dev, D);
+      printf("Setting SYNT\n");
       set_synt_reg(dev, isynt);
       conf->fbase_rd = get_fbase(dev);
       return (conf->fbase_rd);
@@ -383,8 +398,8 @@ void set_tsplit(SpiritSPI dev, SpiritConf conf) {
                    SP1_SYNTH_CONFIG0_SEL_TSPLIT, conf.tsplit);
 }
 
-void tx_ramp(SpiritSPI dev, bool enable) {
-  if (enable) {
+void tx_ramp(SpiritSPI dev, SpiritConf conf) {
+  if (conf.tx_ramp) {
     _update_bitfield(dev, SP1_PA_POWER0, SP1_PA_POWER0_RAMP_ENABLE,
                      0x1);
   } else {
@@ -408,22 +423,62 @@ void set_tx_ramp_step_width(SpiritSPI dev, SpiritConf conf) {
 float get_tx_power(SpiritSPI dev, uint8_t slot) {
   assert(slot <= 7);
   uint8_t data;
-  sp1_read(dev, SP1_PA_POWER0 - slot, &data, 1, true);
+  sp1_read(dev, SP1_PA_POWER1 - slot, &data, 1, true);
   return (11.0 - ((float)data - 1) / 2);
 }
 
-void set_tx_power(SpiritSPI dev, SpiritConf conf, uint8_t slot) {
+void set_tx_power(SpiritSPI dev, SpiritConf conf) {
   // slot starts with 0 pointing to PA_POWER1 and ascending
-  assert(slot <= 7);
   uint8_t data;
-  data = 2 * (11.0 - conf.tx_power[slot]) + 1;
-  sp1_write(dev, SP1_PA_POWER0 - slot, &data, 1);
+  for (uint8_t slot = 0; slot < 8; slot++) {
+    data = 2 * (11.0 - conf.tx_power[slot]) + 1;
+    sp1_write(dev, SP1_PA_POWER1 - slot, &data, 1);
+  }
 }
 
 void set_tx_out_capis(SpiritSPI dev, SpiritConf conf) {
   assert(conf.tx_out_capis <= 3);
   _update_bitfield(dev, SP1_PA_POWER0, SP1_PA_POWER0_CWC,
                    conf.tx_out_capis);
+}
+
+void set_frequency_deviation(SpiritSPI dev, SpiritConf conf) {
+  double ef;
+  double mf;
+  uint8_t e;
+  uint8_t m;
+  double fdev;
+  double tmp;
+  fdev = _calc_frequency_deviation(get_datarate(dev), conf.h_index);
+  // Finding E
+  // Using max M=(2^3)-1, this gives a minimal E:
+  tmp = fdev * pow(2, 18) / dev.fxo;
+  ef = ceil(log2(tmp / (8.0 + (pow(2, 3) - 1.0))) + 1);
+  assert(ef <= (pow(2, 4) - 1));
+  mf = round(tmp / pow(2, (ef - 1.0))) - 8.0;
+  assert(mf < (pow(2, 3) - 1));
+  e = (uint8_t)ef;
+  m = (uint8_t)mf;
+  printf("M: %f 0x%02X, E: %f 0x%X\n", mf, m, ef, e);
+  _update_bitfield(dev, SP1_FDEV0, SP1_FDEV0_M, m);
+  _update_bitfield(dev, SP1_FDEV0, SP1_FDEV0_E, e);
+}
+
+double get_frequency_deviation(SpiritSPI dev) {
+  uint8_t m;
+  uint8_t e;
+  m = _get_bitfield(dev, SP1_FDEV0, SP1_FDEV0_M);
+  e = _get_bitfield(dev, SP1_FDEV0, SP1_FDEV0_E);
+  return (dev.fxo * floor((8.0 + m) * pow(2, (e - 1.0))) /
+          pow(2, 18));
+}
+
+double _calc_frequency_deviation(float datarate, float H) {
+  // H: Modulation Index = 2*dev_freq/datarate
+  // (https://www.silabs.com/community/wireless/proprietary/knowledge-base.entry.html/2015/06/09/data_rate_deviation-Cfz7)
+  // Datasheet page 59:
+  // FDEV=datarate/4 (For GFSK) => H=0.5
+  return (H * datarate / 2.0);
 }
 
 void set_mod_type(SpiritSPI dev, SpiritConf conf) {
@@ -641,7 +696,17 @@ void set_pckt_addr_len(SpiritSPI dev, SpiritConf conf) {
                    conf.pckt_addr_len);
 }
 
+void print_chflt(SpiritSPI dev) {
+  printf("Channel Filter. M: %d, E: %d\n",
+         _get_bitfield(dev, SP1_CHFLT, SP1_CHFLT_M),
+         _get_bitfield(dev, SP1_CHFLT, SP1_CHFLT_E));
+}
+
 void set_chflt(SpiritSPI dev, SpiritConf conf) {
+  // OBW (Occupied bandwidth of 2GFSK is:
+  // OBW = datarate + 2*freq_deviation
+  // Maybe multiply this by some additional factor (1.3?)
+  // https://www.silabs.com/community/wireless/proprietary/knowledge-base.entry.html/2015/02/17/calculation_of_theo-S9wI
   _update_bitfield(dev, SP1_CHFLT, SP1_CHFLT_M, conf.chflt_m);
   _update_bitfield(dev, SP1_CHFLT, SP1_CHFLT_E, conf.chflt_e);
 }
@@ -828,69 +893,85 @@ void init_spirit_spi(SpiritSPI dev) {
   float if_offset_ana;
   float if_offset_dig;
 
-  printf("\n");
+  printf("\n------------------\n");
+  printf("Setting general SPSGRF configuration (SPI + Spirit Crystal "
+         "conf)\n");
+  printf("------------------\n");
   set_clkdiv(dev);
   printf("\n");
 
-  printf("\n");
-  printf("Dig freq: %f\n", get_fclk(dev));
+  printf("Digital freq: %.2fMHz\n", get_fclk(dev) / pow(10, 6));
   printf("\n");
 
-  printf("Intermediate frequency:\n");
+  printf("Ana and Dig registers for intermediate frequency:\n");
   if_offset_ana = calc_if_ana(dev);
-  printf("%f 0x%02x\n", if_offset_ana, (unsigned int)if_offset_ana);
+  printf("Ana: 0x%02x\n", (unsigned int)if_offset_ana);
   if_offset_dig = calc_if_dig(dev);
-  printf("%f 0x%02x\n", if_offset_dig, (unsigned int)if_offset_dig);
+  printf("Dig: 0x%02x\n", (unsigned int)if_offset_dig);
+  set_if(dev);
 }
 
 void init_spirit(SpiritSPI dev, SpiritConf conf) {
-  printf("\n");
+  printf("\n------------------\n");
+  printf("Setting all general Spirit configuration!\n");
+  printf("------------------\n");
+  printf(">>>\n");
   printf("Desired Fbase: %f\n", conf.fbase_cmd);
   set_fbase(dev, &conf);
-  printf("Set Fbase: %f\n", conf.fbase_rd);
-  printf("\n");
+  printf("Configured Fbase: %.2f\n", conf.fbase_rd);
 
-  printf("\n");
-  printf("Channel spacing steps\n");
-  set_ch_space_steps(dev, 1);
-  printf("\n");
+  printf(">>>\n");
+  printf("Desired channel spacing\n");
+  set_ch_space_steps(dev, conf);
+  printf("Configured channel spacing: %.2f\n",
+         _get_channel_spacing(dev));
 
+  printf(">>>\n");
+  printf("Set Channel: %d\n", conf.channel);
   set_channel(dev, conf);
 
-  printf("Channel spacing: %f\n", _get_channel_spacing(dev));
+  printf(">>>\n");
+  printf("Channel Frequency, Fc = %.2f\n", get_fchannel(dev));
 
-  printf("\n");
-  printf("Channel Frequency, Fc = %f\n", get_fchannel(dev));
-  printf("\n");
-
+  printf(">>>\n");
   set_tsplit(dev, conf);
-  set_tx_power(dev, conf, 7);
-  tx_ramp(dev, false);
+  set_tx_power(dev, conf);
+  printf("Output power: ");
+  for (int slot = 0; slot < 8; slot++)
+    printf("%.2f ", get_tx_power(dev, slot));
+  printf("(dBm)\n");
+
+  printf(">>>\n");
+  tx_ramp(dev, conf);
   set_tx_ramp_max_index(dev, conf);
   set_tx_ramp_step_width(dev, conf);
   set_tx_out_capis(dev, conf);
-
-  printf("Output power: %f\n", get_tx_power(dev, 7));
-
-  printf("Get datarate: %f\n", get_datarate(dev));
-
+  printf("Previous datarate: %.2f\n", get_datarate(dev));
   set_datarate(dev, &conf);
-  printf("Get datarate: %f %f\n", get_datarate(dev),
-         conf.datarate_rd);
+  printf("New datarate: %.2f\n", get_datarate(dev));
 
+  printf(">>>\n");
   set_mod_type(dev, conf);
   printf("Modulation Type: 0x%X\n", get_mod_type(dev));
-
+  printf("Previous frequency deviation: %.2fHz\n",
+         get_frequency_deviation(dev));
+  printf("New frequency deviation: %.2fHz\n",
+         _calc_frequency_deviation(get_datarate(dev), conf.h_index));
+  set_frequency_deviation(dev, conf);
+  printf("Current frequency deviation: %.2fHz\n",
+         get_frequency_deviation(dev));
+  printf(">>>\n");
   set_chflt(dev, conf);
+  print_chflt(dev);
+  printf("Check that the filter BW is bigger than: datarate + "
+         "2*freq_deviation\n");
+  printf(">>>\n");
 
   afc_enable(dev, conf);
-
   afc_mode(dev, conf);
-
   afc_freeze_on_sync(dev, conf);
 
   agc_enable(dev, conf);
-
   set_agc_th_high(dev, conf);
   set_agc_th_low(dev, conf);
 
@@ -902,13 +983,12 @@ void init_spirit(SpiritSPI dev, SpiritConf conf) {
   set_pckt_format(dev, conf);
   set_pckt_rx_mode(dev, conf);
   set_pckt_addr_len(dev, conf);
-
   set_pckt_len(dev, conf);
-
   set_pckt_flt_options(dev, conf);
 
   set_protocol_flags(dev, conf);
 
+  printf(">>>\n");
   get_device_info(dev, &conf);
   print_device_info(conf);
 }

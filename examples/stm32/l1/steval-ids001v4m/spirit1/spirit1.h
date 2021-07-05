@@ -23,6 +23,8 @@
 #define SP1_LINEAR_FIFO_STATUS 0xE6 // 16bits
 #define SP1_DEM_CONFIG 0xA3
 #define SP1_XO_RCO_TEST 0xB4
+#define SP1_IF_OFFSET_ANA 0x07
+#define SP1_IF_OFFSET_DIG 0x0D
 #define SP1_SYNT0 0x0B
 #define SP1_SYNT1 0x0A
 #define SP1_SYNT2 0x09
@@ -45,6 +47,7 @@
 #define SP1_MOD1 0x1A
 #define SP1_MOD0 0x1B
 #define SP1_CHFLT 0x1D
+#define SP1_FDEV0 0x1C
 #define SP1_AFC2 0x1E
 #define SP1_AFC1 0x1F
 #define SP1_AFC0 0x20
@@ -134,6 +137,11 @@
 // CHFLT flags
 #define SP1_CHFLT_M (0xF << 4)
 #define SP1_CHFLT_E (0xF << 0)
+
+// Frequency deviation flags
+#define SP1_FDEV0_E (0xF << 4)
+#define SP1_FDEV0_CLOCK_REC_ALGO_SEL (1 << 3)
+#define SP1_FDEV0_M (0x7 << 0)
 
 // AFC2 flags
 #define SP1_AFC2_FREEZE_ON_SYNC (1 << 7)
@@ -269,6 +277,7 @@ typedef struct {
   double datarate_cmd;
   double datarate_rd;
   uint8_t mod_type;
+  double h_index;
   uint8_t chflt_m;
   uint8_t chflt_e;
   bool afc;
@@ -313,8 +322,47 @@ typedef struct dwrite {
   uint8_t data;
 } Data_write;
 
+// General setting up functions
 void min_init(SpiritSPI dev);
+void sp1_spi_setup(SpiritSPI spi_conf);
+void init_spirit_spi(SpiritSPI dev);
+void init_spirit(SpiritSPI dev, SpiritConf conf);
+
+// Digital clock and Intermediate freq. functions
+double get_fclk(SpiritSPI dev);
+void set_clkdiv(SpiritSPI dev);
+double calc_if_ana(SpiritSPI dev);
+double calc_if_dig(SpiritSPI dev);
+void set_if(SpiritSPI dev);
+
+// Base frequency, channel, channel spacing functions
+double set_fbase(SpiritSPI dev, SpiritConf *conf);
+void _get_fbase(SpiritSPI dev);
+double get_fbase(SpiritSPI dev);
+void set_channel(SpiritSPI dev, SpiritConf conf);
+void set_ch_space_steps(SpiritSPI dev, SpiritConf conf);
+double get_fchannel(SpiritSPI dev);
+double _get_channel_spacing(SpiritSPI dev);
+uint8_t _get_channel(SpiritSPI dev);
+uint32_t _get_synt_from_reg(SpiritSPI dev);
+void set_synth_refdiv(SpiritSPI dev, int D);
+void set_synt_reg(SpiritSPI dev, uint32_t synt);
+void set_tsplit(SpiritSPI dev, SpiritConf conf);
+uint8_t _get_B(SpiritSPI dev);
+uint8_t _get_D(SpiritSPI dev);
+int16_t _get_foffset(SpiritSPI dev);
+
+// Output power
+void tx_ramp(SpiritSPI dev, SpiritConf conf);
+void set_tx_ramp_max_index(SpiritSPI dev, SpiritConf conf);
+void set_tx_ramp_step_width(SpiritSPI dev, SpiritConf conf);
+float get_tx_power(SpiritSPI dev, uint8_t slot);
+void set_tx_power(SpiritSPI dev, SpiritConf conf);
+void set_tx_out_capis(SpiritSPI dev, SpiritConf conf);
+
+// Reception functions
 void set_chflt(SpiritSPI dev, SpiritConf conf);
+void print_chflt(SpiritSPI dev);
 uint8_t get_rx_afc_corr(SpiritSPI dev);
 uint8_t get_rx_PQI(SpiritSPI dev);
 uint8_t get_rx_cs_indication(SpiritSPI dev);
@@ -322,16 +370,9 @@ uint8_t get_rx_SQI(SpiritSPI dev);
 uint8_t get_rx_agc_word(SpiritSPI dev);
 uint8_t get_rx_RSSI_level(SpiritSPI dev);
 uint16_t get_rx_pckt_len(SpiritSPI dev);
-uint8_t get_elem_txfifo(SpiritSPI dev);
-uint8_t get_elem_rxfifo(SpiritSPI dev);
-void get_device_info(SpiritSPI dev, SpiritConf *conf);
-void print_device_info(SpiritConf conf);
-uint8_t get_tx_seq_num(SpiritSPI dev);
-uint8_t get_n_retx(SpiritSPI dev);
-uint8_t get_rx_seq_num(SpiritSPI dev);
-uint8_t get_nack_rx(SpiritSPI dev);
-void rco_calib(SpiritSPI dev, bool enable);
-void vco_calib(SpiritSPI dev, bool enable);
+void set_cs_blanking(SpiritSPI dev, SpiritConf conf);
+
+// Protocol and packet functions
 void set_protocol_flags(SpiritSPI dev, SpiritConf conf);
 void set_pckt_flt_options(SpiritSPI dev, SpiritConf conf);
 void set_pckt_len(SpiritSPI dev, SpiritConf conf);
@@ -341,60 +382,58 @@ void set_pckt_whitening(SpiritSPI dev, SpiritConf conf);
 void set_pckt_format(SpiritSPI dev, SpiritConf conf);
 void set_pckt_rx_mode(SpiritSPI dev, SpiritConf conf);
 void set_pckt_addr_len(SpiritSPI dev, SpiritConf conf);
-void set_cs_blanking(SpiritSPI dev, SpiritConf conf);
+uint8_t get_tx_seq_num(SpiritSPI dev);
+uint8_t get_n_retx(SpiritSPI dev);
+uint8_t get_rx_seq_num(SpiritSPI dev);
+uint8_t get_nack_rx(SpiritSPI dev);
+
+// AGC RX Auto gain control functions
 void set_agc_th_high(SpiritSPI dev, SpiritConf conf);
 void set_agc_th_low(SpiritSPI dev, SpiritConf conf);
 void agc_enable(SpiritSPI dev, SpiritConf conf);
+
+// AFC RX Auto Frequency Compensation
 void afc_freeze_on_sync(SpiritSPI dev, SpiritConf conf);
 void afc_enable(SpiritSPI dev, SpiritConf conf);
 void afc_mode(SpiritSPI dev, SpiritConf conf);
-void change_to_state(SpiritSPI dev, int state_cmd, int state_result);
+
+// Modulation and Datarate functions
 void set_mod_type(SpiritSPI dev, SpiritConf conf);
 uint8_t get_mod_type(SpiritSPI dev);
 void set_datarate(SpiritSPI dev, SpiritConf *conf);
 double get_datarate(SpiritSPI dev);
-double get_fclk(SpiritSPI dev);
-void set_clkdiv(SpiritSPI dev);
-double get_fchannel(SpiritSPI dev);
-double _get_channel_spacing(SpiritSPI dev);
-int16_t _get_foffset(SpiritSPI dev);
-uint8_t _get_channel(SpiritSPI dev);
-uint32_t _get_synt_from_reg(SpiritSPI dev);
+double _calc_frequency_deviation(float datarate, float H);
+double get_frequency_deviation(SpiritSPI dev);
+void set_frequency_deviation(SpiritSPI dev, SpiritConf conf);
+
+// Calibraion functions
+void rco_calib(SpiritSPI dev, bool enable);
+void vco_calib(SpiritSPI dev, bool enable);
+
+// Utils functions
 void _update_bitfield(SpiritSPI dev, uint8_t reg, uint8_t bitfield,
                       uint8_t value);
 uint8_t _get_bitfield(SpiritSPI dev, uint8_t reg, uint8_t bitfield);
-uint8_t _get_B(SpiritSPI dev);
-uint8_t _get_D(SpiritSPI dev);
-void _get_fbase(SpiritSPI dev);
-double get_fbase(SpiritSPI dev);
-void set_channel(SpiritSPI dev, SpiritConf conf);
-void set_ch_space_steps(SpiritSPI dev, uint8_t steps);
-void set_synth_refdiv(SpiritSPI dev, int D);
-void set_synt_reg(SpiritSPI dev, uint32_t synt);
-double set_fbase(SpiritSPI dev, SpiritConf *conf);
-double calc_if_ana(SpiritSPI dev);
-double calc_if_dig(SpiritSPI dev);
-void set_tsplit(SpiritSPI dev, SpiritConf conf);
-void tx_ramp(SpiritSPI dev, bool enable);
-void set_tx_ramp_max_index(SpiritSPI dev, SpiritConf conf);
-void set_tx_ramp_step_width(SpiritSPI dev, SpiritConf conf);
-float get_tx_power(SpiritSPI dev, uint8_t slot);
-void set_tx_power(SpiritSPI dev, SpiritConf conf, uint8_t slot);
-void set_tx_out_capis(SpiritSPI dev, SpiritConf conf);
-uint16_t get_mc_state(SpiritSPI dev);
 void write_many(SpiritSPI dev, Data_write *list, int n);
-void write_buffer(SpiritSPI dev, unsigned char *buf, int count);
-void read_buffer(SpiritSPI dev, unsigned char *buf, int count);
-char *get_state_str(uint8_t state);
-void print_sp1_status(uint16_t status);
 uint16_t my_spi_xfer(uint32_t spi, uint16_t data);
 uint16_t sp1_write(SpiritSPI spi_conf, uint8_t reg_addr,
                    uint8_t *wr_data, uint8_t count);
-uint16_t sp1_cmd(SpiritSPI spi_conf, uint8_t cmd);
 uint16_t sp1_read(SpiritSPI spi_conf, uint8_t reg_addr,
                   uint8_t *rd_data, uint8_t count, bool inv_dir);
-void sp1_spi_setup(SpiritSPI spi_conf);
-void init_spirit_spi(SpiritSPI dev);
-void init_spirit(SpiritSPI dev, SpiritConf conf);
+
+// Spirit util functions
+void get_device_info(SpiritSPI dev, SpiritConf *conf);
+void print_device_info(SpiritConf conf);
+uint16_t get_mc_state(SpiritSPI dev);
+char *get_state_str(uint8_t state);
+void print_sp1_status(uint16_t status);
+uint16_t sp1_cmd(SpiritSPI spi_conf, uint8_t cmd);
+void change_to_state(SpiritSPI dev, int state_cmd, int state_result);
+
+// Buffer functions
+uint8_t get_elem_txfifo(SpiritSPI dev);
+uint8_t get_elem_rxfifo(SpiritSPI dev);
+void write_buffer(SpiritSPI dev, unsigned char *buf, int count);
+void read_buffer(SpiritSPI dev, unsigned char *buf, int count);
 
 #endif // SPIRIT1_H
