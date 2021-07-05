@@ -58,9 +58,26 @@ void write_many(SpiritSPI dev, Data_write *list, int n) {
   }
 }
 
-void write_buffer(SpiritSPI dev, unsigned char *buf, int count) {
-  sp1_write(dev, SP1_FIFO, buf, count);
-  // TODO: maybe write fifo_length
+void write_buffer(SpiritSPI dev, SpiritConf *conf, unsigned char *buf,
+                  uint8_t max_count) {
+  uint8_t count;
+  count = 0;
+  if (max_count <= SP1_FIFO_SIZE) {
+    while (count < max_count) {
+      if (buf[count] == '\0') {
+        // end of string found
+        break;
+      }
+      count++;
+    }
+    printf("Buffer data:\n%s\n", buf);
+    sp1_write(dev, SP1_FIFO, buf, count);
+    conf->pckt_len = count;
+    set_pckt_len(dev, *conf);
+  } else {
+    printf("Error: buffer insuficient, max_count too high! Not "
+           "writing.\n");
+  }
 }
 
 void read_buffer(SpiritSPI dev, unsigned char *buf, int count) {
@@ -79,6 +96,13 @@ Data_write min_init_data[] = {
 void min_init(SpiritSPI dev) {
   write_many(dev, min_init_data,
              sizeof(min_init_data) / sizeof(Data_write));
+}
+
+void wait_state(SpiritSPI dev, uint8_t state) {
+  printf("Waiting for state: %s\n", get_state_str(state));
+  while (SP1_STATE(get_mc_state(dev)) != state) {
+  }
+  printf("Now in %s\n", get_state_str(state));
 }
 
 void change_to_state(SpiritSPI dev, int state_cmd, int state_result) {
@@ -663,11 +687,6 @@ void set_pckt_len(SpiritSPI dev, SpiritConf conf) {
   sp1_write(dev, SP1_PCKTLEN1, data, 2);
 }
 
-void set_pckt_preamble_len(SpiritSPI dev, SpiritConf conf) {
-  _update_bitfield(dev, SP1_PCKTCTRL2, SP1_PCKTCTRL2_PREAMBLE_LENGTH,
-                   conf.pckt_preamble_len);
-}
-
 void set_pckt_crc_mode(SpiritSPI dev, SpiritConf conf) {
   _update_bitfield(dev, SP1_PCKTCTRL1, SP1_PCKTCTRL1_CRC_MODE,
                    conf.pckt_crc_mode);
@@ -679,6 +698,16 @@ void set_pckt_whitening(SpiritSPI dev, SpiritConf conf) {
   } else {
     _update_bitfield(dev, SP1_PCKTCTRL1, SP1_PCKTCTRL1_WHIT_EN, 0x0);
   }
+}
+
+void set_pckt_preamble_len(SpiritSPI dev, SpiritConf conf) {
+  _update_bitfield(dev, SP1_PCKTCTRL2, SP1_PCKTCTRL2_PREAMBLE_LENGTH,
+                   conf.pckt_preamble_len);
+}
+
+void set_pckt_fix_var_len(SpiritSPI dev, SpiritConf conf) {
+  _update_bitfield(dev, SP1_PCKTCTRL2, SP1_PCKTCTRL2_FIX_VAR_LEN,
+                   conf.pckt_fix_var);
 }
 
 void set_pckt_format(SpiritSPI dev, SpiritConf conf) {
@@ -980,6 +1009,7 @@ void init_spirit(SpiritSPI dev, SpiritConf conf) {
   set_pckt_whitening(dev, conf);
   set_pckt_crc_mode(dev, conf);
   set_pckt_preamble_len(dev, conf);
+  set_pckt_fix_var_len(dev, conf);
   set_pckt_format(dev, conf);
   set_pckt_rx_mode(dev, conf);
   set_pckt_addr_len(dev, conf);

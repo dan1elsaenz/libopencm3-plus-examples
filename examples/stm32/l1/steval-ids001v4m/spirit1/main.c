@@ -38,6 +38,9 @@
 #include "spirit1.h"
 #include "steval-ids001v4m.h"
 
+#define TX() sp1_cmd(spsgrf_spi, SP1_CMD_TX)
+#define RX() sp1_cmd(spsgrf_spi, SP1_CMD_RX)
+
 SpiritConf spirit_conf = {
   .fbase_cmd = 868000000,
   .fbase_rd = 868000000,
@@ -73,6 +76,7 @@ SpiritConf spirit_conf = {
   .pckt_frmt = PCKT_FRMT_Basic,
   .pckt_rx_mode = PCKT_RX_MODE_Normal,
   .pckt_addr_len = 0x0, //0,1 for Basic, 2 for STack
+  .pckt_fix_var = PCKT_VAR_LEN,
   .pckt_len = 0x0012, // not sure if this is set automatically somewhere else
   .pckt_flt_options = RX_TIMEOUT_AND_OR_SELECT | CRC_CHECK,
   .protocol_nmax_retx = 0x0,
@@ -220,7 +224,7 @@ void end_waiting(void) {
   }
 }
 
-#define MSG_SIZE 50
+#define MSG_SIZE 96
 #define CMD_SIZE 10
 #define WRITE_SIZE 50
 #define RETURN_CHAR '\r'
@@ -409,7 +413,20 @@ int main(void) {
         printf("Received data:\n");
         printf("%s\n", rx_buf);
         printf("--------\n");
-
+        break;
+      case 't':
+        printf("Transmit buffer ...\n");
+        printf("Type your data!\n");
+        read_serial(my_input);
+        printf("From keyboard: %s\n", my_input);
+        write_buffer(spsgrf_spi, &spirit_conf, my_input, 96);
+        printf("TX FIFO used: %d\n", get_elem_txfifo(spsgrf_spi));
+        printf("TX execute!\n");
+        TX();
+        wait_state(spsgrf_spi, SP1_ST_READY);
+        printf("TX FIFO used: %d\n", get_elem_txfifo(spsgrf_spi));
+        printf("--------\n");
+        break;
       default:
         goto endcmd;
       }
@@ -421,7 +438,8 @@ int main(void) {
       printf("\n");
     endcmd:
       printf("\n");
-      printf("(r) read, (w) write, (c) cmd, (s) get status\n");
+      printf("(r) read, (w) write, (c) cmd, (s) get status, (b) read "
+             "buffer, (t) tx buffer\n");
     }
     /* EEPROM test code */
     /* gpio_clear(GPIOA, GPIO9); */

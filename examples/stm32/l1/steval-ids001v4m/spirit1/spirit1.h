@@ -80,6 +80,8 @@
 #define SP1_DEVICE_INFO0 0xF1
 #define SP1_FIFO 0xFF
 
+#define SP1_FIFO_SIZE 96
+
 // Flags
 
 // MC_STATE flags
@@ -254,6 +256,11 @@ typedef enum {
   PCKT_RX_MODE_DIRECT_GPIO = 0x2,
 } Pckt_rx_mode;
 
+typedef enum {
+  PCKT_FIX_LEN = 0x0,
+  PCKT_VAR_LEN = 0x1,
+} Pckt_fix_var;
+
 typedef struct {
   uint32_t spiport;
   uint32_t gpioport;
@@ -290,6 +297,7 @@ typedef struct {
   bool pckt_whitening;
   Pckt_crc_mode pckt_crc_mode;
   uint8_t pckt_preamble_len;
+  Pckt_fix_var pckt_fix_var;
   uint16_t pckt_len;
   Pckt_flt_options pckt_flt_options;
   uint8_t protocol_nmax_retx;
@@ -376,6 +384,7 @@ void set_cs_blanking(SpiritSPI dev, SpiritConf conf);
 void set_protocol_flags(SpiritSPI dev, SpiritConf conf);
 void set_pckt_flt_options(SpiritSPI dev, SpiritConf conf);
 void set_pckt_len(SpiritSPI dev, SpiritConf conf);
+void set_pckt_fix_var_len(SpiritSPI dev, SpiritConf conf);
 void set_pckt_preamble_len(SpiritSPI dev, SpiritConf conf);
 void set_pckt_crc_mode(SpiritSPI dev, SpiritConf conf);
 void set_pckt_whitening(SpiritSPI dev, SpiritConf conf);
@@ -429,11 +438,13 @@ char *get_state_str(uint8_t state);
 void print_sp1_status(uint16_t status);
 uint16_t sp1_cmd(SpiritSPI spi_conf, uint8_t cmd);
 void change_to_state(SpiritSPI dev, int state_cmd, int state_result);
+void wait_state(SpiritSPI dev, uint8_t state);
 
 // Buffer functions
 uint8_t get_elem_txfifo(SpiritSPI dev);
 uint8_t get_elem_rxfifo(SpiritSPI dev);
-void write_buffer(SpiritSPI dev, unsigned char *buf, int count);
+void write_buffer(SpiritSPI dev, SpiritConf *conf, unsigned char *buf,
+                  uint8_t max_count);
 void read_buffer(SpiritSPI dev, unsigned char *buf, int count);
 
 #endif // SPIRIT1_H
