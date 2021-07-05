@@ -284,8 +284,8 @@ double get_fchannel(SpiritSPI dev) {
           ((double)_get_channel(dev)) * _get_channel_spacing(dev));
 }
 
-void set_channel(SpiritSPI dev) {
-  sp1_write(dev, SP1_CHNUM, &(dev.channel), 1);
+void set_channel(SpiritSPI dev, SpiritConf conf) {
+  sp1_write(dev, SP1_CHNUM, &(conf.channel), 1);
 }
 
 void set_ch_space_steps(SpiritSPI dev, uint8_t steps) {
@@ -316,7 +316,7 @@ void set_synt_reg(SpiritSPI dev, uint32_t synt) {
   sp1_write(dev, SP1_SYNT3, &data, 1);
 }
 
-double set_fbase(SpiritSPI *dev) {
+double set_fbase(SpiritSPI dev, SpiritConf *conf) {
   // Sets Synt value and BS (Band select)
   // Returns the real fbase set value (not exactly the same)
   int D;
@@ -325,22 +325,23 @@ double set_fbase(SpiritSPI *dev) {
   double synt;
   uint32_t isynt;
 
-  if ((dev->fbase_cmd > 779000000) && (dev->fbase_cmd < 956000000)) {
+  if ((conf->fbase_cmd > 779000000) &&
+      (conf->fbase_cmd < 956000000)) {
     BS = 1;
     B = 6;
   } else {
-    if ((dev->fbase_cmd > 387000000) &&
-        (dev->fbase_cmd < 470000000)) {
+    if ((conf->fbase_cmd > 387000000) &&
+        (conf->fbase_cmd < 470000000)) {
       BS = 3;
       B = 12;
     } else {
-      if ((dev->fbase_cmd > 300000000) &&
-          (dev->fbase_cmd < 348000000)) {
+      if ((conf->fbase_cmd > 300000000) &&
+          (conf->fbase_cmd < 348000000)) {
         BS = 4;
         B = 16;
       } else {
-        if ((dev->fbase_cmd > 168000000) &&
-            (dev->fbase_cmd < 170000000)) {
+        if ((conf->fbase_cmd > 168000000) &&
+            (conf->fbase_cmd < 170000000)) {
           BS = 5;
           B = 32;
         } else {
@@ -351,17 +352,17 @@ double set_fbase(SpiritSPI *dev) {
     }
   }
   printf("B: %d\n", B);
-  sp1_write(*dev, SP1_SYNT0, &BS, 1);
+  sp1_write(dev, SP1_SYNT0, &BS, 1);
   for (D = 2; D >= 1; D--) {
-    synt = roundf((dev->fbase_cmd / dev->fxo) * pow(2, 18) * B * D /
+    synt = roundf((conf->fbase_cmd / dev.fxo) * pow(2, 18) * B * D /
                   2.0);
     isynt = synt;
     printf("For D: %d, synt: %f, %x\n", D, synt, isynt);
     if (isynt < pow(2, 25)) {
-      set_synth_refdiv(*dev, D);
-      set_synt_reg(*dev, isynt);
-      dev->fbase_rd = get_fbase(*dev);
-      return (dev->fbase_rd);
+      set_synth_refdiv(dev, D);
+      set_synt_reg(dev, isynt);
+      conf->fbase_rd = get_fbase(dev);
+      return (conf->fbase_rd);
     }
   }
   abort();
@@ -377,9 +378,9 @@ double calc_if_dig(SpiritSPI dev) {
   return (roundf((SP1_FIF / get_fclk(dev)) * 3.0 * pow(2, 12) - 64));
 }
 
-void set_tsplit(SpiritSPI dev) {
+void set_tsplit(SpiritSPI dev, SpiritConf conf) {
   _update_bitfield(dev, SP1_SYNTH_CONFIG0,
-                   SP1_SYNTH_CONFIG0_SEL_TSPLIT, dev.tsplit);
+                   SP1_SYNTH_CONFIG0_SEL_TSPLIT, conf.tsplit);
 }
 
 void tx_ramp(SpiritSPI dev, bool enable) {
@@ -392,16 +393,16 @@ void tx_ramp(SpiritSPI dev, bool enable) {
   }
 }
 
-void set_tx_ramp_max_index(SpiritSPI dev) {
-  assert(dev.tx_ramp_max_index <= 7);
+void set_tx_ramp_max_index(SpiritSPI dev, SpiritConf conf) {
+  assert(conf.tx_ramp_max_index <= 7);
   _update_bitfield(dev, SP1_PA_POWER0, SP1_PA_POWER0_LEVEL_MAX_INDEX,
-                   dev.tx_ramp_max_index);
+                   conf.tx_ramp_max_index);
 }
 
-void set_tx_ramp_step_width(SpiritSPI dev) {
-  assert(dev.tx_ramp_step <= 3);
+void set_tx_ramp_step_width(SpiritSPI dev, SpiritConf conf) {
+  assert(conf.tx_ramp_step <= 3);
   _update_bitfield(dev, SP1_PA_POWER0, SP1_PA_POWER0_RAMP_STEP_WIDTH,
-                   dev.tx_ramp_step);
+                   conf.tx_ramp_step);
 }
 
 float get_tx_power(SpiritSPI dev, uint8_t slot) {
@@ -411,35 +412,35 @@ float get_tx_power(SpiritSPI dev, uint8_t slot) {
   return (11.0 - ((float)data - 1) / 2);
 }
 
-void set_tx_power(SpiritSPI dev, uint8_t slot) {
+void set_tx_power(SpiritSPI dev, SpiritConf conf, uint8_t slot) {
   // slot starts with 0 pointing to PA_POWER1 and ascending
   assert(slot <= 7);
   uint8_t data;
-  data = 2 * (11.0 - dev.tx_power[slot]) + 1;
+  data = 2 * (11.0 - conf.tx_power[slot]) + 1;
   sp1_write(dev, SP1_PA_POWER0 - slot, &data, 1);
 }
 
-void set_tx_out_capis(SpiritSPI dev) {
-  assert(dev.tx_out_capis <= 3);
+void set_tx_out_capis(SpiritSPI dev, SpiritConf conf) {
+  assert(conf.tx_out_capis <= 3);
   _update_bitfield(dev, SP1_PA_POWER0, SP1_PA_POWER0_CWC,
-                   dev.tx_out_capis);
+                   conf.tx_out_capis);
 }
 
-void set_mod_type(SpiritSPI dev) {
-  _update_bitfield(dev, SP1_MOD0, SP1_MOD0_MOD_TYPE, dev.mod_type);
+void set_mod_type(SpiritSPI dev, SpiritConf conf) {
+  _update_bitfield(dev, SP1_MOD0, SP1_MOD0_MOD_TYPE, conf.mod_type);
 }
 
 uint8_t get_mod_type(SpiritSPI dev) {
   return (_get_bitfield(dev, SP1_MOD0, SP1_MOD0_MOD_TYPE));
 }
 
-void set_datarate(SpiritSPI *dev) {
+void set_datarate(SpiritSPI dev, SpiritConf *conf) {
   double ef;
   double mf;
   uint8_t e;
   uint8_t m;
   double tmp;
-  tmp = (dev->datarate_cmd * pow(2, 28) / get_fclk(*dev));
+  tmp = (conf->datarate_cmd * pow(2, 28) / get_fclk(dev));
   // Finding E
   // Using max M=255, this gives a minimal E:
   ef = ceil(log2(tmp / (256 + 255)));
@@ -449,9 +450,9 @@ void set_datarate(SpiritSPI *dev) {
   e = (uint8_t)ef;
   m = (uint8_t)mf;
   printf("M: %f 0x%02X, E: %f 0x%X\n", mf, m, ef, e);
-  sp1_write(*dev, SP1_MOD1, &m, 1);
-  _update_bitfield(*dev, SP1_MOD0, SP1_MOD0_DATARATE_E, e);
-  dev->datarate_rd = get_datarate(*dev);
+  sp1_write(dev, SP1_MOD1, &m, 1);
+  _update_bitfield(dev, SP1_MOD0, SP1_MOD0_DATARATE_E, e);
+  conf->datarate_rd = get_datarate(dev);
 }
 
 double get_datarate(SpiritSPI dev) {
@@ -536,18 +537,17 @@ uint8_t get_elem_rxfifo(SpiritSPI dev) {
                         SP1_LINEAR_FIFO_STATUS0_ELEM_RXFIFO));
 }
 
-void get_device_info(SpiritSPI dev) {
+void get_device_info(SpiritSPI dev, SpiritConf *conf) {
   uint8_t data;
   sp1_read(dev, SP1_DEVICE_INFO1, &data, 1, true);
-  dev.partnum = data;
+  conf->partnum = data;
   sp1_read(dev, SP1_DEVICE_INFO0, &data, 1, true);
-  dev.version = data;
+  conf->version = data;
 }
 
-void print_device_info(SpiritSPI dev) {
-  get_device_info(dev);
-  printf("Part Number: 0x%02X, Version: 0x%02X\n", dev.partnum,
-         dev.version);
+void print_device_info(SpiritConf conf) {
+  printf("Part Number: 0x%02X, Version: 0x%02X\n", conf.partnum,
+         conf.version);
 }
 
 void rco_calib(SpiritSPI dev, bool enable) {
@@ -559,96 +559,95 @@ void vco_calib(SpiritSPI dev, bool enable) {
                    enable);
 }
 
-void set_protocol_flags(SpiritSPI dev) {
+void set_protocol_flags(SpiritSPI dev, SpiritConf conf) {
   _update_bitfield(dev, SP1_PROTOCOL0, SP1_PROTOCOL0_NACK_TX,
-                   dev.protocol_nack_tx);
+                   conf.protocol_nack_tx);
   _update_bitfield(dev, SP1_PROTOCOL0, SP1_PROTOCOL0_AUTO_ACK,
-                   dev.protocol_auto_ack);
+                   conf.protocol_auto_ack);
   _update_bitfield(dev, SP1_PROTOCOL0, SP1_PROTOCOL0_PERS_RX,
-                   dev.protocol_pers_rx);
+                   conf.protocol_pers_rx);
   _update_bitfield(dev, SP1_PROTOCOL0, SP1_PROTOCOL0_PERS_TX,
-                   dev.protocol_pers_tx);
+                   conf.protocol_pers_tx);
   _update_bitfield(dev, SP1_PROTOCOL1,
                    SP1_PROTOCOL1_LDC_RELOAD_ON_SYNC,
-                   dev.protocol_ldc_reload_on_sync);
+                   conf.protocol_ldc_reload_on_sync);
   _update_bitfield(dev, SP1_PROTOCOL1, SP1_PROTOCOL1_PIGGYBACKING,
-                   dev.protocol_piggybacking);
+                   conf.protocol_piggybacking);
   _update_bitfield(dev, SP1_PROTOCOL1, SP1_PROTOCOL1_SEED_RELOAD,
-                   dev.protocol_seed_reload);
+                   conf.protocol_seed_reload);
   _update_bitfield(dev, SP1_PROTOCOL1, SP1_PROTOCOL1_CSMA_ON,
-                   dev.protocol_csma_on);
+                   conf.protocol_csma_on);
   _update_bitfield(dev, SP1_PROTOCOL1, SP1_PROTOCOL1_CSMA_PERS_ON,
-                   dev.protocol_csma_pers_on);
+                   conf.protocol_csma_pers_on);
   _update_bitfield(dev, SP1_PROTOCOL1, SP1_PROTOCOL1_AUTO_PCKT_FLT,
-                   dev.protocol_auto_pckt_flt);
+                   conf.protocol_auto_pckt_flt);
   _update_bitfield(dev, SP1_PROTOCOL2, SP1_PROTOCOL2_CS_TIMEOUT_MASK,
-                   dev.protocol_cs_timeout_mask);
+                   conf.protocol_cs_timeout_mask);
   _update_bitfield(dev, SP1_PROTOCOL2, SP1_PROTOCOL2_SQI_TIMEOUT_MASK,
-                   dev.protocol_sqi_timeout_mask);
+                   conf.protocol_sqi_timeout_mask);
   _update_bitfield(dev, SP1_PROTOCOL2, SP1_PROTOCOL2_PQI_TIMEOUT_MASK,
-                   dev.protocol_pqi_timeout_mask);
+                   conf.protocol_pqi_timeout_mask);
   _update_bitfield(dev, SP1_PROTOCOL2, SP1_PROTOCOL2_RCO_CALIBRATION,
-                   dev.protocol_rco_calib);
+                   conf.protocol_rco_calib);
   _update_bitfield(dev, SP1_PROTOCOL2, SP1_PROTOCOL2_VCO_CALIBRATION,
-                   dev.protocol_vco_calib);
+                   conf.protocol_vco_calib);
   _update_bitfield(dev, SP1_PROTOCOL2, SP1_PROTOCOL2_LDC_MODE,
-                   dev.protocol_ldc_mode);
+                   conf.protocol_ldc_mode);
 }
 
-void set_pckt_flt_options(SpiritSPI dev) {
+void set_pckt_flt_options(SpiritSPI dev, SpiritConf conf) {
   uint8_t data;
-  data = dev.pckt_flt_options;
+  data = conf.pckt_flt_options;
   sp1_write(dev, SP1_PCKT_FLT_OPTIONS, &data, 1);
 }
 
-void set_pckt_len(SpiritSPI dev) {
-  uint8_t data;
-  data = dev.pckt_len & 0x00FF;
-  sp1_write(dev, SP1_PCKTLEN0, &data, 1);
-  data = (dev.pckt_len & 0xFF) >> 8;
-  sp1_write(dev, SP1_PCKTLEN1, &data, 1);
+void set_pckt_len(SpiritSPI dev, SpiritConf conf) {
+  uint8_t data[2];
+  data[1] = conf.pckt_len & 0xFF;
+  data[0] = (conf.pckt_len >> 8) & 0xFF;
+  sp1_write(dev, SP1_PCKTLEN1, data, 2);
 }
 
-void set_pckt_preamble_len(SpiritSPI dev) {
+void set_pckt_preamble_len(SpiritSPI dev, SpiritConf conf) {
   _update_bitfield(dev, SP1_PCKTCTRL2, SP1_PCKTCTRL2_PREAMBLE_LENGTH,
-                   dev.pckt_preamble_len);
+                   conf.pckt_preamble_len);
 }
 
-void set_pckt_crc_mode(SpiritSPI dev) {
+void set_pckt_crc_mode(SpiritSPI dev, SpiritConf conf) {
   _update_bitfield(dev, SP1_PCKTCTRL1, SP1_PCKTCTRL1_CRC_MODE,
-                   dev.pckt_crc_mode);
+                   conf.pckt_crc_mode);
 }
 
-void set_pckt_whitening(SpiritSPI dev) {
-  if (dev.pckt_whitening) {
+void set_pckt_whitening(SpiritSPI dev, SpiritConf conf) {
+  if (conf.pckt_whitening) {
     _update_bitfield(dev, SP1_PCKTCTRL1, SP1_PCKTCTRL1_WHIT_EN, 0x1);
   } else {
     _update_bitfield(dev, SP1_PCKTCTRL1, SP1_PCKTCTRL1_WHIT_EN, 0x0);
   }
 }
 
-void set_pckt_format(SpiritSPI dev) {
+void set_pckt_format(SpiritSPI dev, SpiritConf conf) {
   _update_bitfield(dev, SP1_PCKTCTRL3, SP1_PCKTCTRL3_PCKT_FRMT,
-                   dev.pckt_frmt);
+                   conf.pckt_frmt);
 }
 
-void set_pckt_rx_mode(SpiritSPI dev) {
+void set_pckt_rx_mode(SpiritSPI dev, SpiritConf conf) {
   _update_bitfield(dev, SP1_PCKTCTRL3, SP1_PCKTCTRL3_RX_MODE,
-                   dev.pckt_rx_mode);
+                   conf.pckt_rx_mode);
 }
 
-void set_pckt_addr_len(SpiritSPI dev) {
+void set_pckt_addr_len(SpiritSPI dev, SpiritConf conf) {
   _update_bitfield(dev, SP1_PCKTCTRL4, SP1_PCKTCTRL4_ADDRESS_LEN,
-                   dev.pckt_addr_len);
+                   conf.pckt_addr_len);
 }
 
-void set_chflt(SpiritSPI dev) {
-  _update_bitfield(dev, SP1_CHFLT, SP1_CHFLT_M, dev.chflt_m);
-  _update_bitfield(dev, SP1_CHFLT, SP1_CHFLT_E, dev.chflt_e);
+void set_chflt(SpiritSPI dev, SpiritConf conf) {
+  _update_bitfield(dev, SP1_CHFLT, SP1_CHFLT_M, conf.chflt_m);
+  _update_bitfield(dev, SP1_CHFLT, SP1_CHFLT_E, conf.chflt_e);
 }
 
-void set_cs_blanking(SpiritSPI dev) {
-  if (dev.ant_sel_cs_blanking) {
+void set_cs_blanking(SpiritSPI dev, SpiritConf conf) {
+  if (conf.ant_sel_cs_blanking) {
     _update_bitfield(dev, SP1_ANT_SELECT_CONF,
                      SP1_ANT_SELECT_CONF_CS_BLANKING, 0x1);
   } else {
@@ -657,38 +656,38 @@ void set_cs_blanking(SpiritSPI dev) {
   }
 }
 
-void set_agc_th_high(SpiritSPI dev) {
+void set_agc_th_high(SpiritSPI dev, SpiritConf conf) {
   _update_bitfield(dev, SP1_AGCCTRL1, SP1_AGCCTRL1_TH_HIGH,
-                   dev.agc_th_high);
+                   conf.agc_th_high);
 }
 
-void set_agc_th_low(SpiritSPI dev) {
+void set_agc_th_low(SpiritSPI dev, SpiritConf conf) {
   _update_bitfield(dev, SP1_AGCCTRL1, SP1_AGCCTRL1_TH_LOW,
-                   dev.agc_th_low);
+                   conf.agc_th_low);
 }
 
-void agc_enable(SpiritSPI dev) {
-  if (dev.agc) {
+void agc_enable(SpiritSPI dev, SpiritConf conf) {
+  if (conf.agc) {
     _update_bitfield(dev, SP1_AGCCTRL0, SP1_AGCCTRL0_ENABLE, 0x1);
   } else {
     _update_bitfield(dev, SP1_AGCCTRL0, SP1_AGCCTRL0_ENABLE, 0x0);
   }
 }
 
-void afc_enable(SpiritSPI dev) {
-  if (dev.afc) {
+void afc_enable(SpiritSPI dev, SpiritConf conf) {
+  if (conf.afc) {
     _update_bitfield(dev, SP1_AFC2, SP1_AFC2_ENABLE, 0x1);
   } else {
     _update_bitfield(dev, SP1_AFC2, SP1_AFC2_ENABLE, 0x0);
   }
 }
 
-void afc_mode(SpiritSPI dev) {
-  _update_bitfield(dev, SP1_AFC2, SP1_AFC2_MODE, dev.afc_mode);
+void afc_mode(SpiritSPI dev, SpiritConf conf) {
+  _update_bitfield(dev, SP1_AFC2, SP1_AFC2_MODE, conf.afc_mode);
 }
 
-void afc_freeze_on_sync(SpiritSPI dev) {
-  if (dev.afc_freeze_on_sync) {
+void afc_freeze_on_sync(SpiritSPI dev, SpiritConf conf) {
+  if (conf.afc_freeze_on_sync) {
     _update_bitfield(dev, SP1_AFC2, SP1_AFC2_FREEZE_ON_SYNC, 0x1);
   } else {
     _update_bitfield(dev, SP1_AFC2, SP1_AFC2_FREEZE_ON_SYNC, 0x0);
@@ -823,4 +822,93 @@ void sp1_spi_setup(SpiritSPI spi_conf) {
 
   /* Enable SPI1 periph. */
   spi_enable(spi_conf.spiport);
+}
+
+void init_spirit_spi(SpiritSPI dev) {
+  float if_offset_ana;
+  float if_offset_dig;
+
+  printf("\n");
+  set_clkdiv(dev);
+  printf("\n");
+
+  printf("\n");
+  printf("Dig freq: %f\n", get_fclk(dev));
+  printf("\n");
+
+  printf("Intermediate frequency:\n");
+  if_offset_ana = calc_if_ana(dev);
+  printf("%f 0x%02x\n", if_offset_ana, (unsigned int)if_offset_ana);
+  if_offset_dig = calc_if_dig(dev);
+  printf("%f 0x%02x\n", if_offset_dig, (unsigned int)if_offset_dig);
+}
+
+void init_spirit(SpiritSPI dev, SpiritConf conf) {
+  printf("\n");
+  printf("Desired Fbase: %f\n", conf.fbase_cmd);
+  set_fbase(dev, &conf);
+  printf("Set Fbase: %f\n", conf.fbase_rd);
+  printf("\n");
+
+  printf("\n");
+  printf("Channel spacing steps\n");
+  set_ch_space_steps(dev, 1);
+  printf("\n");
+
+  set_channel(dev, conf);
+
+  printf("Channel spacing: %f\n", _get_channel_spacing(dev));
+
+  printf("\n");
+  printf("Channel Frequency, Fc = %f\n", get_fchannel(dev));
+  printf("\n");
+
+  set_tsplit(dev, conf);
+  set_tx_power(dev, conf, 7);
+  tx_ramp(dev, false);
+  set_tx_ramp_max_index(dev, conf);
+  set_tx_ramp_step_width(dev, conf);
+  set_tx_out_capis(dev, conf);
+
+  printf("Output power: %f\n", get_tx_power(dev, 7));
+
+  printf("Get datarate: %f\n", get_datarate(dev));
+
+  set_datarate(dev, &conf);
+  printf("Get datarate: %f %f\n", get_datarate(dev),
+         conf.datarate_rd);
+
+  set_mod_type(dev, conf);
+  printf("Modulation Type: 0x%X\n", get_mod_type(dev));
+
+  set_chflt(dev, conf);
+
+  afc_enable(dev, conf);
+
+  afc_mode(dev, conf);
+
+  afc_freeze_on_sync(dev, conf);
+
+  agc_enable(dev, conf);
+
+  set_agc_th_high(dev, conf);
+  set_agc_th_low(dev, conf);
+
+  set_cs_blanking(dev, conf);
+
+  set_pckt_whitening(dev, conf);
+  set_pckt_crc_mode(dev, conf);
+  set_pckt_preamble_len(dev, conf);
+  set_pckt_format(dev, conf);
+  set_pckt_rx_mode(dev, conf);
+  set_pckt_addr_len(dev, conf);
+
+  set_pckt_len(dev, conf);
+
+  set_pckt_flt_options(dev, conf);
+
+  set_protocol_flags(dev, conf);
+
+  get_device_info(dev, &conf);
+  print_device_info(conf);
 }

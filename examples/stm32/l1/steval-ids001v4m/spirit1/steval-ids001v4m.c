@@ -39,60 +39,6 @@ SpiritSPI spsgrf_spi = {
   .sdnport = GPIOC,
   .sdnpin = GPIO13,
   .fxo = 50000000,
-  .fbase_cmd = 868000000,
-  .fbase_rd = 868000000,
-  .ch_space_steps = 1, // steps of fxo/(2^15)
-  .channel = 1,
-  .tsplit = 1,    // 0: 1.75ns, 1: 3.47ns
-  .tx_power = { // 11.0dBm -> -34dBm (in half dB decrements)
-    // Use -35dBm or smaller to turn output off
-    10, 10, 10, 10, 10, 10, 10, 10
-  },
-
-  .tx_out_capis = SP1_PA_POWER0_CWC_2pF4,
-  .tx_ramp = false,
-  .tx_ramp_max_index = 7, // 0->7
-  .tx_ramp_step = 0,      // 1/8 bit period
-  .datarate_cmd = 1000000,
-  .datarate_rd = 1000000,
-  .mod_type= SP1_MOD0_MOD_TYPE_GFSK,
-  .chflt_m = 1,
-  .chflt_e = 3, // 94.23kHz Table 32/33
-  .afc = true,
-  .afc_freeze_on_sync = true,
-  .afc_mode = AFC_SLICER,
-  .agc = true,
-  .agc_th_high = 0x6, // 0 -> 0xF
-  .agc_th_low = 0x2, // 0 -> 0xF
-  .ant_sel_cs_blanking = true,
-  .pckt_whitening = true,
-  .pckt_crc_mode = PCKT_CRC_0x07,
-  .pckt_preamble_len = 0x7,
-  .pckt_len = 0x0012, // not sure if this is set automatically somewhere else
-  .pckt_flt_options = RX_TIMEOUT_AND_OR_SELECT | CRC_CHECK,
-  .protocol_nmax_retx = 0x0,
-  .protocol_nack_tx = true,
-  .protocol_auto_ack = false,
-  .protocol_pers_rx = false,
-  .protocol_pers_tx = false,
-  .protocol_ldc_reload_on_sync = false,
-  .protocol_piggybacking = false,
-  .protocol_seed_reload = false,
-  .protocol_csma_on = false,
-  .protocol_csma_pers_on = false,
-  .protocol_auto_pckt_flt = true,
-  .protocol_cs_timeout_mask  = false,
-  .protocol_sqi_timeout_mask = true,
-  .protocol_pqi_timeout_mask = false,
-  .protocol_tx_seq_num_reload = 0x0,
-  .protocol_rco_calib  = false,
-  .protocol_vco_calib = false,
-  .protocol_ldc_mode = false,
-  .pckt_frmt = PCKT_FRMT_Basic,
-  .pckt_addr_len = 0x0,
-  .pckt_rx_mode = PCKT_RX_MODE_Normal,
-  .partnum=0x00,
-  .version=0x00,
 };
 
 /* uint16_t spsgrf_write(uint8_t reg_addr, uint8_t *wr_data, uint8_t

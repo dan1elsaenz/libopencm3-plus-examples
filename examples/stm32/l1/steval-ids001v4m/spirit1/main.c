@@ -38,6 +38,63 @@
 #include "spirit1.h"
 #include "steval-ids001v4m.h"
 
+SpiritConf spirit_conf = {
+  .fbase_cmd = 868000000,
+  .fbase_rd = 868000000,
+  .ch_space_steps = 1, // steps of fxo/(2^15)
+  .channel = 1,
+  .tsplit = 1,    // 0: 1.75ns, 1: 3.47ns
+  .tx_power = { // 11.0dBm -> -34dBm (in half dB decrements)
+    // Use -35dBm or smaller to turn output off
+    10, 10, 10, 10, 10, 10, 10, 10
+  },
+
+  .tx_out_capis = SP1_PA_POWER0_CWC_2pF4,
+  .tx_ramp = false,
+  .tx_ramp_max_index = 7, // 0->7
+  .tx_ramp_step = 0,      // 1/8 bit period
+  .datarate_cmd = 1000000,
+  .datarate_rd = 1000000,
+  .mod_type= SP1_MOD0_MOD_TYPE_GFSK,
+  .chflt_m = 1,
+  .chflt_e = 3, // 94.23kHz Table 32/33
+  .afc = true,
+  .afc_freeze_on_sync = true,
+  .afc_mode = AFC_SLICER,
+  .agc = true,
+  .agc_th_high = 0x6, // 0 -> 0xF
+  .agc_th_low = 0x2, // 0 -> 0xF
+  .ant_sel_cs_blanking = true,
+  .pckt_whitening = true,
+  .pckt_crc_mode = PCKT_CRC_0x07,
+  .pckt_preamble_len = 0x7,
+  .pckt_frmt = PCKT_FRMT_Basic,
+  .pckt_rx_mode = PCKT_RX_MODE_Normal,
+  .pckt_addr_len = 0x0, //0,1 for Basic, 2 for STack
+  .pckt_len = 0x0012, // not sure if this is set automatically somewhere else
+  .pckt_flt_options = RX_TIMEOUT_AND_OR_SELECT | CRC_CHECK,
+  .protocol_nmax_retx = 0x0,
+  .protocol_nack_tx = true,
+  .protocol_auto_ack = false,
+  .protocol_pers_rx = false,
+  .protocol_pers_tx = false,
+  .protocol_ldc_reload_on_sync = false,
+  .protocol_piggybacking = false,
+  .protocol_seed_reload = false,
+  .protocol_csma_on = false,
+  .protocol_csma_pers_on = false,
+  .protocol_auto_pckt_flt = true,
+  .protocol_cs_timeout_mask  = false,
+  .protocol_sqi_timeout_mask = true,
+  .protocol_pqi_timeout_mask = false,
+  .protocol_tx_seq_num_reload = 0x0,
+  .protocol_rco_calib  = false,
+  .protocol_vco_calib = false,
+  .protocol_ldc_mode = false,
+  .partnum=0x00,
+  .version=0x00,
+};
+
 Data_write transmit_conf_data[] = {
   { 0xa3, 0x35 }, // DEM_ORDER = 0 during ratio init *
   { 0x07, 0x36 }, // Intermediate Frequency Analog must be 480kHz *
@@ -55,14 +112,16 @@ Data_write transmit_conf_data[] = {
   { 0x1B, 0x1A }, // Exponent data rate *, Modulation Type *
   { 0x1D, 0x13 }, // Channel filter *
   { 0x1E, 0xC8 }, // Auto Frequency Correction *
-  { 0x25, 0x62 }, // Auto Gain Control (AGC)
-  { 0x27, 0x15 }, // RXFIFO filling depends on Carrier Sense threshold
-  { 0x32, 0x3F }, // Preamble length, sync_length, packet length mode
-  { 0x33, 0x30 }, // Whitening, CRC Mode, TXSOURCE
-  { 0x35, 0x12 }, // Length of packet
-  { 0x4f, 0x41 }, // Discard if bad CRC, Packet filter options
-  { 0x50, 0x40 }, // Timeout disabling, automatic calibration
-  { 0x51, 0x01 }, // Piggybacking?, Auto packet filtering
+  { 0x25, 0x62 }, // Auto Gain Control (AGC) *
+  { 0x27,
+    0x15 }, // RXFIFO filling depends on Carrier Sense threshold *
+  { 0x32,
+    0x3F }, // Preamble length, sync_length, packet length mode *
+  { 0x33, 0x30 }, // Whitening, CRC Mode, TXSOURCE *
+  { 0x35, 0x12 }, // Length of packet *
+  { 0x4f, 0x41 }, // Discard if bad CRC, Packet filter options *
+  { 0x50, 0x40 }, // Timeout disabling, automatic calibration *
+  { 0x51, 0x01 }, // Piggybacking?, Auto packet filtering *
   { 0xA1, 0x25 }, // Set VCO current *
   { 0xBC, 0x22 }, // During radio config *
   { 0xA4, 0x0C }, // SMPS config
@@ -253,65 +312,12 @@ int main(void) {
   int read_counts;
   int write_counts;
 
-  float if_offset_ana;
-  float if_offset_dig;
-
   printf("\nExecuting writing sequence!!!\n");
   write_many(spsgrf_spi, transmit_conf_data,
              sizeof(transmit_conf_data) / sizeof(Data_write));
 
-  printf("\n");
-  set_clkdiv(spsgrf_spi);
-  printf("\n");
-
-  printf("\n");
-  printf("Dig freq: %f\n", get_fclk(spsgrf_spi));
-  printf("\n");
-
-  printf("Intermediate frequency:\n");
-  if_offset_ana = calc_if_ana(spsgrf_spi);
-  printf("%f 0x%02x\n", if_offset_ana, (unsigned int)if_offset_ana);
-  if_offset_dig = calc_if_dig(spsgrf_spi);
-  printf("%f 0x%02x\n", if_offset_dig, (unsigned int)if_offset_dig);
-
-  printf("\n");
-  printf("Desired Fbase: %f\n", spsgrf_spi.fbase_cmd);
-  set_fbase(&spsgrf_spi);
-  printf("Set Fbase: %f\n", spsgrf_spi.fbase_rd);
-  printf("\n");
-
-  printf("\n");
-  printf("Channel spacing steps\n");
-  set_ch_space_steps(spsgrf_spi, 1);
-  printf("\n");
-
-  set_channel(spsgrf_spi);
-
-  printf("Channel spacing: %f\n", _get_channel_spacing(spsgrf_spi));
-
-  printf("\n");
-  printf("Channel Frequency, Fc = %f\n", get_fchannel(spsgrf_spi));
-  printf("\n");
-
-  set_tsplit(spsgrf_spi);
-  set_tx_power(spsgrf_spi, 7);
-  tx_ramp(spsgrf_spi, false);
-  set_tx_ramp_max_index(spsgrf_spi);
-  set_tx_ramp_step_width(spsgrf_spi);
-  set_tx_out_capis(spsgrf_spi);
-
-  printf("Output power: %f\n", get_tx_power(spsgrf_spi, 7));
-
-  printf("Get datarate: %f\n", get_datarate(spsgrf_spi));
-
-  set_datarate(&spsgrf_spi);
-  printf("Get datarate: %f %f\n", get_datarate(spsgrf_spi),
-         spsgrf_spi.datarate_rd);
-
-  set_mod_type(spsgrf_spi);
-  printf("Modulation Type: 0x%X\n", get_mod_type(spsgrf_spi));
-
-  set_chflt(spsgrf_spi);
+  init_spirit_spi(spsgrf_spi);
+  init_spirit(spsgrf_spi, spirit_conf);
 
   printf("\nType your command: r/w/c reg_num readings\n");
   printf("(r) read, (w) write, (c) cmd, (s) get status, (b) "

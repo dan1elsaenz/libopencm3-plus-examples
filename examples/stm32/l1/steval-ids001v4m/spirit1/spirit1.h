@@ -253,6 +253,9 @@ typedef struct {
   uint32_t sdnport;
   uint16_t sdnpin;
   double fxo;
+} SpiritSPI;
+
+typedef struct {
   double fbase_cmd;
   double fbase_rd;
   uint8_t ch_space_steps;
@@ -278,7 +281,7 @@ typedef struct {
   bool pckt_whitening;
   Pckt_crc_mode pckt_crc_mode;
   uint8_t pckt_preamble_len;
-  uint16_t pckt_len; // 2 bytes long
+  uint16_t pckt_len;
   Pckt_flt_options pckt_flt_options;
   uint8_t protocol_nmax_retx;
   bool protocol_nack_tx;
@@ -303,7 +306,7 @@ typedef struct {
   Pckt_rx_mode pckt_rx_mode;
   uint8_t partnum;
   uint8_t version;
-} SpiritSPI;
+} SpiritConf;
 
 typedef struct dwrite {
   uint8_t reg;
@@ -311,7 +314,7 @@ typedef struct dwrite {
 } Data_write;
 
 void min_init(SpiritSPI dev);
-void set_chflt(SpiritSPI dev);
+void set_chflt(SpiritSPI dev, SpiritConf conf);
 uint8_t get_rx_afc_corr(SpiritSPI dev);
 uint8_t get_rx_PQI(SpiritSPI dev);
 uint8_t get_rx_cs_indication(SpiritSPI dev);
@@ -321,34 +324,34 @@ uint8_t get_rx_RSSI_level(SpiritSPI dev);
 uint16_t get_rx_pckt_len(SpiritSPI dev);
 uint8_t get_elem_txfifo(SpiritSPI dev);
 uint8_t get_elem_rxfifo(SpiritSPI dev);
-void get_device_info(SpiritSPI dev);
-void print_device_info(SpiritSPI dev);
+void get_device_info(SpiritSPI dev, SpiritConf *conf);
+void print_device_info(SpiritConf conf);
 uint8_t get_tx_seq_num(SpiritSPI dev);
 uint8_t get_n_retx(SpiritSPI dev);
 uint8_t get_rx_seq_num(SpiritSPI dev);
 uint8_t get_nack_rx(SpiritSPI dev);
 void rco_calib(SpiritSPI dev, bool enable);
 void vco_calib(SpiritSPI dev, bool enable);
-void set_protocol_flags(SpiritSPI dev);
-void set_pckt_flt_options(SpiritSPI dev);
-void set_pckt_len(SpiritSPI dev);
-void set_pckt_preamble_len(SpiritSPI dev);
-void set_pckt_crc_mode(SpiritSPI dev);
-void set_pckt_whitening(SpiritSPI dev);
-void set_pckt_format(SpiritSPI dev);
-void set_pckt_rx_mode(SpiritSPI dev);
-void set_pckt_addr_len(SpiritSPI dev);
-void set_cs_blanking(SpiritSPI dev);
-void set_agc_th_high(SpiritSPI dev);
-void set_agc_th_low(SpiritSPI dev);
-void agc_enable(SpiritSPI dev);
-void afc_freeze_on_sync(SpiritSPI dev);
-void afc_enable(SpiritSPI dev);
-void afc_mode(SpiritSPI dev);
+void set_protocol_flags(SpiritSPI dev, SpiritConf conf);
+void set_pckt_flt_options(SpiritSPI dev, SpiritConf conf);
+void set_pckt_len(SpiritSPI dev, SpiritConf conf);
+void set_pckt_preamble_len(SpiritSPI dev, SpiritConf conf);
+void set_pckt_crc_mode(SpiritSPI dev, SpiritConf conf);
+void set_pckt_whitening(SpiritSPI dev, SpiritConf conf);
+void set_pckt_format(SpiritSPI dev, SpiritConf conf);
+void set_pckt_rx_mode(SpiritSPI dev, SpiritConf conf);
+void set_pckt_addr_len(SpiritSPI dev, SpiritConf conf);
+void set_cs_blanking(SpiritSPI dev, SpiritConf conf);
+void set_agc_th_high(SpiritSPI dev, SpiritConf conf);
+void set_agc_th_low(SpiritSPI dev, SpiritConf conf);
+void agc_enable(SpiritSPI dev, SpiritConf conf);
+void afc_freeze_on_sync(SpiritSPI dev, SpiritConf conf);
+void afc_enable(SpiritSPI dev, SpiritConf conf);
+void afc_mode(SpiritSPI dev, SpiritConf conf);
 void change_to_state(SpiritSPI dev, int state_cmd, int state_result);
-void set_mod_type(SpiritSPI dev);
+void set_mod_type(SpiritSPI dev, SpiritConf conf);
 uint8_t get_mod_type(SpiritSPI dev);
-void set_datarate(SpiritSPI *dev);
+void set_datarate(SpiritSPI dev, SpiritConf *conf);
 double get_datarate(SpiritSPI dev);
 double get_fclk(SpiritSPI dev);
 void set_clkdiv(SpiritSPI dev);
@@ -364,20 +367,20 @@ uint8_t _get_B(SpiritSPI dev);
 uint8_t _get_D(SpiritSPI dev);
 void _get_fbase(SpiritSPI dev);
 double get_fbase(SpiritSPI dev);
-void set_channel(SpiritSPI dev);
+void set_channel(SpiritSPI dev, SpiritConf conf);
 void set_ch_space_steps(SpiritSPI dev, uint8_t steps);
 void set_synth_refdiv(SpiritSPI dev, int D);
 void set_synt_reg(SpiritSPI dev, uint32_t synt);
-double set_fbase(SpiritSPI *dev);
+double set_fbase(SpiritSPI dev, SpiritConf *conf);
 double calc_if_ana(SpiritSPI dev);
 double calc_if_dig(SpiritSPI dev);
-void set_tsplit(SpiritSPI dev);
+void set_tsplit(SpiritSPI dev, SpiritConf conf);
 void tx_ramp(SpiritSPI dev, bool enable);
-void set_tx_ramp_max_index(SpiritSPI dev);
-void set_tx_ramp_step_width(SpiritSPI dev);
+void set_tx_ramp_max_index(SpiritSPI dev, SpiritConf conf);
+void set_tx_ramp_step_width(SpiritSPI dev, SpiritConf conf);
 float get_tx_power(SpiritSPI dev, uint8_t slot);
-void set_tx_power(SpiritSPI dev, uint8_t slot);
-void set_tx_out_capis(SpiritSPI dev);
+void set_tx_power(SpiritSPI dev, SpiritConf conf, uint8_t slot);
+void set_tx_out_capis(SpiritSPI dev, SpiritConf conf);
 uint16_t get_mc_state(SpiritSPI dev);
 void write_many(SpiritSPI dev, Data_write *list, int n);
 void write_buffer(SpiritSPI dev, unsigned char *buf, int count);
@@ -391,5 +394,7 @@ uint16_t sp1_cmd(SpiritSPI spi_conf, uint8_t cmd);
 uint16_t sp1_read(SpiritSPI spi_conf, uint8_t reg_addr,
                   uint8_t *rd_data, uint8_t count, bool inv_dir);
 void sp1_spi_setup(SpiritSPI spi_conf);
+void init_spirit_spi(SpiritSPI dev);
+void init_spirit(SpiritSPI dev, SpiritConf conf);
 
 #endif // SPIRIT1_H
