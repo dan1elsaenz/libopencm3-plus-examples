@@ -76,6 +76,18 @@
 #define SP1_RX_PCKT_LEN0 0xCA
 #define SP1_LINEAR_FIFO_STATUS1 0xE6
 #define SP1_LINEAR_FIFO_STATUS0 0xE7
+#define SP1_IRQ_STATUS3 0xFA
+#define SP1_IRQ_STATUS2 0xFB
+#define SP1_IRQ_STATUS1 0xFC
+#define SP1_IRQ_STATUS0 0xFD
+#define SP1_IRQ_MASK3 0x90
+#define SP1_IRQ_MASK2 0x91
+#define SP1_IRQ_MASK1 0x92
+#define SP1_IRQ_MASK0 0x93
+#define SP1_GPIO3_CONF 0x02
+#define SP1_GPIO2_CONF 0x03
+#define SP1_GPIO1_CONF 0x04
+#define SP1_GPIO0_CONF 0x05
 #define SP1_DEVICE_INFO1 0xF0
 #define SP1_DEVICE_INFO0 0xF1
 #define SP1_FIFO 0xFF
@@ -213,6 +225,10 @@
 #define SP1_LINEAR_FIFO_STATUS1_ELEM_TXFIFO (0x7F << 0)
 #define SP1_LINEAR_FIFO_STATUS0_ELEM_RXFIFO (0x7F << 0)
 
+// GPIO flags
+#define SP1_GPIO_CONF_SELECT (0x1F << 3)
+#define SP1_GPIO_CONF_MODE (0x3 << 0)
+
 // STATES
 #define SP1_ST_STANDBY 0x40
 #define SP1_ST_SLEEP 0x36
@@ -261,12 +277,33 @@ typedef enum {
   PCKT_VAR_LEN = 0x1,
 } Pckt_fix_var;
 
+typedef enum {
+  GPIO_nIRQ = 0,
+  GPIO_TX_FIFO_almost_empty = 6,
+  GPIO_GND = 20,
+  // TODO: Still 29 more to complete this enum
+} Gpio_select;
+
+typedef enum {
+  IRQ_RX_DATA_RDY = (1 << 0),
+  IRQ_TX_DATA_sent = (1 << 2),
+  // TODO: 30 still missing here
+} IRQ_t;
+
 typedef struct {
   uint32_t spiport;
-  uint32_t gpioport;
+  uint32_t spicsport;
   uint16_t spi_cs;
   uint32_t sdnport;
   uint16_t sdnpin;
+  uint32_t gpio0port;
+  uint32_t gpio1port;
+  uint32_t gpio2port;
+  uint32_t gpio3port;
+  uint16_t gpio0pin;
+  uint16_t gpio1pin;
+  uint16_t gpio2pin;
+  uint16_t gpio3pin;
   double fxo;
 } SpiritSPI;
 
@@ -321,6 +358,11 @@ typedef struct {
   Pckt_frmt pckt_frmt;
   uint8_t pckt_addr_len;
   Pckt_rx_mode pckt_rx_mode;
+  Gpio_select gpio3_sel;
+  Gpio_select gpio2_sel;
+  Gpio_select gpio1_sel;
+  Gpio_select gpio0_sel;
+  IRQ_t irq_mask;
   uint8_t partnum;
   uint8_t version;
 } SpiritConf;
@@ -446,5 +488,10 @@ uint8_t get_elem_rxfifo(SpiritSPI dev);
 void write_buffer(SpiritSPI dev, SpiritConf *conf, unsigned char *buf,
                   uint8_t max_count);
 void read_buffer(SpiritSPI dev, unsigned char *buf);
+
+// IRQ functions
+void print_irq_status(uint32_t status);
+uint32_t get_irq_status(SpiritSPI dev);
+void set_irq_mask(SpiritSPI dev, SpiritConf conf);
 
 #endif // SPIRIT1_H

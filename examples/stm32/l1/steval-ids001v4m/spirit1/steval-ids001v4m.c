@@ -34,10 +34,18 @@
 
 SpiritSPI spsgrf_spi = {
   .spiport = SPI2,
-  .gpioport = GPIOB,
+  .spicsport = GPIOB,
   .spi_cs = GPIO12,
   .sdnport = GPIOC,
   .sdnpin = GPIO13,
+  .gpio0port = GPIOB,
+  .gpio1port = GPIOB,
+  .gpio2port = GPIOB,
+  .gpio3port = GPIOB,
+  .gpio0pin = GPIO7,
+  .gpio1pin = GPIO8,
+  .gpio2pin = GPIO9,
+  .gpio3pin = GPIO10,
   .fxo = 50000000,
 };
 
@@ -87,21 +95,31 @@ void spi_setup(void) {
   gpio_mode_setup(SPSGRF_CS_PORT, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE,
                   spsgrf_spi.spi_cs);
 
-  gpio_set(spsgrf_spi.gpioport, spsgrf_spi.spi_cs);
+  gpio_set(spsgrf_spi.spicsport, spsgrf_spi.spi_cs);
 
   sp1_spi_setup(spsgrf_spi);
 }
 
 void spsgrf868_setup(void) {
+  // Configuring SDN pin
   rcc_periph_clock_enable(RCC_GPIOC);
-
   gpio_mode_setup(spsgrf_spi.sdnport, GPIO_MODE_OUTPUT,
                   GPIO_PUPD_NONE, spsgrf_spi.sdnpin);
   gpio_set(spsgrf_spi.sdnport, spsgrf_spi.sdnpin);
   wait(100);
   gpio_clear(spsgrf_spi.sdnport, spsgrf_spi.sdnpin);
-
   wait(100);
+
+  // Configuring spsgrf GPIO pins
+  rcc_periph_clock_enable(RCC_GPIOB);
+  gpio_mode_setup(spsgrf_spi.gpio0port, GPIO_MODE_INPUT,
+                  GPIO_PUPD_NONE, spsgrf_spi.gpio0pin);
+  gpio_mode_setup(spsgrf_spi.gpio1port, GPIO_MODE_INPUT,
+                  GPIO_PUPD_NONE, spsgrf_spi.gpio1pin);
+  gpio_mode_setup(spsgrf_spi.gpio2port, GPIO_MODE_INPUT,
+                  GPIO_PUPD_NONE, spsgrf_spi.gpio2pin);
+  gpio_mode_setup(spsgrf_spi.gpio3port, GPIO_MODE_INPUT,
+                  GPIO_PUPD_NONE, spsgrf_spi.gpio3pin);
 }
 
 void eeprom_init(void) {

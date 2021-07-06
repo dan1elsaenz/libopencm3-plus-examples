@@ -786,6 +786,47 @@ void afc_freeze_on_sync(SpiritSPI dev, SpiritConf conf) {
   }
 }
 
+void set_gpio(SpiritSPI dev, SpiritConf conf) {
+  _update_bitfield(dev, SP1_GPIO0_CONF, SP1_GPIO_CONF_SELECT,
+                   conf.gpio0_sel);
+  _update_bitfield(dev, SP1_GPIO1_CONF, SP1_GPIO_CONF_SELECT,
+                   conf.gpio1_sel);
+  _update_bitfield(dev, SP1_GPIO2_CONF, SP1_GPIO_CONF_SELECT,
+                   conf.gpio2_sel);
+  _update_bitfield(dev, SP1_GPIO3_CONF, SP1_GPIO_CONF_SELECT,
+                   conf.gpio3_sel);
+}
+
+void print_irq_status(uint32_t status) {
+  for (int i = 0; i < 32; i++) {
+    printf("|%2d", (31 - i));
+  }
+  printf("|\n");
+  for (int i = 0; i < 32; i++) {
+    printf("| %1d", (0x1 & (status >> (31 - i))));
+  }
+  printf("|\n");
+}
+
+uint32_t get_irq_status(SpiritSPI dev) {
+  uint8_t data[4];
+  uint32_t irq_status;
+  sp1_read(dev, SP1_IRQ_STATUS3, data, 4, true);
+  irq_status = data[0] | (data[1] >> 8) | (data[1] >> 8 * 2) |
+               (data[1] >> 8 * 3);
+  return (irq_status);
+}
+
+void set_irq_mask(SpiritSPI dev, SpiritConf conf) {
+  uint32_t mask;
+  uint8_t data;
+  mask = conf.irq_mask;
+  for (int i = 0; i < 4; i++) {
+    data = (mask >> (i * 8));
+    sp1_write(dev, SP1_IRQ_MASK0 - i, &data, 1);
+  }
+}
+
 uint16_t get_mc_state(SpiritSPI dev) {
   uint8_t rx_value[2];
   uint16_t state;
@@ -835,22 +876,22 @@ uint16_t my_spi_xfer(uint32_t spi, uint16_t data) {
 uint16_t sp1_write(SpiritSPI spi_conf, uint8_t reg_addr,
                    uint8_t *wr_data, uint8_t count) {
   uint16_t status = 0x00;
-  gpio_clear(spi_conf.gpioport, spi_conf.spi_cs);
+  gpio_clear(spi_conf.spicsport, spi_conf.spi_cs);
   status = (my_spi_xfer(spi_conf.spiport, SP1_WRITE) << 8);
   status |= my_spi_xfer(spi_conf.spiport, reg_addr);
   for (int i = 0; i < count; i++) {
     my_spi_xfer(spi_conf.spiport, *(wr_data + i));
   }
-  gpio_set(spi_conf.gpioport, spi_conf.spi_cs);
+  gpio_set(spi_conf.spicsport, spi_conf.spi_cs);
   return (status);
 }
 
 uint16_t sp1_cmd(SpiritSPI spi_conf, uint8_t cmd) {
   uint16_t status = 0x00;
-  gpio_clear(spi_conf.gpioport, spi_conf.spi_cs);
+  gpio_clear(spi_conf.spicsport, spi_conf.spi_cs);
   status = (my_spi_xfer(spi_conf.spiport, SP1_CMD) << 8);
   status |= my_spi_xfer(spi_conf.spiport, cmd);
-  gpio_set(spi_conf.gpioport, spi_conf.spi_cs);
+  gpio_set(spi_conf.spicsport, spi_conf.spi_cs);
   return (status);
 }
 
@@ -858,7 +899,7 @@ uint16_t sp1_read(SpiritSPI spi_conf, uint8_t reg_addr,
                   uint8_t *rd_data, uint8_t count, bool inv_dir) {
   // Returns least significant Byte first (position 0 in array)
   uint16_t status = 0x00;
-  gpio_clear(spi_conf.gpioport, spi_conf.spi_cs);
+  gpio_clear(spi_conf.spicsport, spi_conf.spi_cs);
   status = (my_spi_xfer(spi_conf.spiport, SP1_READ) << 8);
   status |= my_spi_xfer(spi_conf.spiport, reg_addr);
   for (int i = 0; i < count; i++) {
@@ -869,7 +910,7 @@ uint16_t sp1_read(SpiritSPI spi_conf, uint8_t reg_addr,
       *(rd_data + i) = my_spi_xfer(spi_conf.spiport, 0x00);
     }
   }
-  gpio_set(spi_conf.gpioport, spi_conf.spi_cs);
+  gpio_set(spi_conf.spicsport, spi_conf.spi_cs);
   return (status);
 }
 
@@ -1015,6 +1056,10 @@ void init_spirit(SpiritSPI dev, SpiritConf conf) {
   set_pckt_flt_options(dev, conf);
 
   set_protocol_flags(dev, conf);
+
+  printf(">>>\n");
+  set_gpio(dev, conf);
+  set_irq_mask(dev, conf);
 
   printf(">>>\n");
   get_device_info(dev, &conf);

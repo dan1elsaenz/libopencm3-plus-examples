@@ -23,6 +23,8 @@
 #include <libopencm3-plus/newlib/syscall.h>
 #include <libopencm3-plus/steval-ids001v4m/leds.h>
 #include <libopencm3-plus/utils/misc.h>
+#include <libopencm3/cm3/nvic.h>
+#include <libopencm3/stm32/exti.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/syscfg.h>
@@ -98,6 +100,11 @@ SpiritConf spirit_conf = {
   .protocol_rco_calib  = false,
   .protocol_vco_calib = false,
   .protocol_ldc_mode = false,
+  .irq_mask = IRQ_RX_DATA_RDY,
+  .gpio0_sel = GPIO_nIRQ,
+  .gpio1_sel = GPIO_GND,
+  .gpio2_sel = GPIO_GND,
+  .gpio3_sel = GPIO_GND,
   .partnum=0x00,
   .version=0x00,
 };
@@ -186,6 +193,12 @@ void system_init(void) {
   spi_setup();
   /* steval-ids001v4m specific setup */
   spsgrf868_setup();
+
+  // Configuring interrupt for spsgrf868
+  nvic_enable_irq(NVIC_EXTI9_5_IRQ);
+  exti_select_source(EXTI7, GPIOB);
+  exti_set_trigger(EXTI7, EXTI_TRIGGER_FALLING);
+  exti_enable_request(EXTI7);
 }
 
 /* void nanowait(int x) { */
@@ -401,6 +414,11 @@ int main(void) {
         printf("--------\n");
         print_sp1_status(status_new);
         printf("--------\n");
+        printf("GPIO0 pin state: %d\n",
+               gpio_get(spsgrf_spi.gpio0port, spsgrf_spi.gpio0pin));
+        printf("IRQ status:\n");
+        print_irq_status(get_irq_status(spsgrf_spi));
+        printf("--------\n");
         break;
       case 'b':
         printf("Reading all buffer ...\n");
@@ -462,4 +480,25 @@ int main(void) {
     gpio_toggle(LORANGE);
     wait(2);
   }
+}
+
+void exti9_5_isr(void) {
+  uint32_t irq_status;
+  unsigned char rx_buf[97];
+  exti_reset_request(EXTI7);
+  irq_status = get_irq_status(spsgrf_spi);
+  printf("Interrupt!\n");
+  switch (irq_status) {
+  case IRQ_RX_DATA_RDY:
+    printf("irq: RX Data ready\n");
+    printf("RX buffer count: %d\n", get_elem_rxfifo(spsgrf_spi));
+    rx_buf[get_elem_rxfifo(spsgrf_spi)] = '\0';
+    read_buffer(spsgrf_spi, rx_buf);
+    printf("Received data:\n");
+    printf("%s\n", rx_buf);
+    break;
+  default:
+    printf("Don't know how to handle this!\n");
+  }
+  printf("IRQ end\n");
 }
