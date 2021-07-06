@@ -62,6 +62,21 @@
 #define SP1_PCKTLEN0 0x35
 #define SP1_PCKTLEN1 0x34
 #define SP1_PCKT_FLT_OPTIONS 0x4F
+#define SP1_PCKT_FLT_GOALS0 0x4E
+#define SP1_PCKT_FLT_TX_SOURCE_ADDR SP1_PCKT_FLT_GOALS0
+#define SP1_PCKT_FLT_GOALS1 0x4D
+#define SP1_PCKT_FLT_GOALS2 0x4C
+#define SP1_PCKT_FLT_GOALS3 0x4B
+#define SP1_PCKT_FLT_RX_SOURCE_ADDR SP1_PCKT_FLT_GOALS3
+#define SP1_PCKT_FLT_GOALS4 0x4A
+#define SP1_PCKT_FLT_GOALS5 0x49
+#define SP1_PCKT_FLT_GOALS6 0x48
+#define SP1_PCKT_FLT_GOALS7 0x47
+#define SP1_PCKT_FLT_GOALS8 0x46
+#define SP1_PCKT_FLT_GOALS9 0x45
+#define SP1_PCKT_FLT_GOALS10 0x44
+#define SP1_PCKT_FLT_GOALS11 0x43
+#define SP1_PCKT_FLT_GOALS12 0x42
 #define SP1_PROTOCOL0 0x52
 #define SP1_PROTOCOL1 0x51
 #define SP1_PROTOCOL2 0x50
@@ -337,6 +352,8 @@ typedef struct {
   Pckt_fix_var pckt_fix_var;
   uint16_t pckt_len;
   Pckt_flt_options pckt_flt_options;
+  uint8_t rx_my_address;
+  uint8_t tx_address;
   uint8_t protocol_nmax_retx;
   bool protocol_nack_tx;
   bool protocol_auto_ack;
@@ -437,6 +454,8 @@ uint8_t get_tx_seq_num(SpiritSPI dev);
 uint8_t get_n_retx(SpiritSPI dev);
 uint8_t get_rx_seq_num(SpiritSPI dev);
 uint8_t get_nack_rx(SpiritSPI dev);
+void set_tx_address(SpiritSPI dev, SpiritConf conf);
+void set_rx_my_address(SpiritSPI dev, SpiritConf conf);
 
 // AGC RX Auto gain control functions
 void set_agc_th_high(SpiritSPI dev, SpiritConf conf);

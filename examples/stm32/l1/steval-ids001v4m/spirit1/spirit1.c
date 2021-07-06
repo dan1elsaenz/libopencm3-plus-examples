@@ -723,6 +723,18 @@ void set_pckt_addr_len(SpiritSPI dev, SpiritConf conf) {
                    conf.pckt_addr_len);
 }
 
+void set_tx_address(SpiritSPI dev, SpiritConf conf) {
+  uint8_t data;
+  data = conf.tx_address;
+  sp1_write(dev, SP1_PCKT_FLT_RX_SOURCE_ADDR, &data, 1);
+}
+
+void set_rx_my_address(SpiritSPI dev, SpiritConf conf) {
+  uint8_t data;
+  data = conf.rx_my_address;
+  sp1_write(dev, SP1_PCKT_FLT_TX_SOURCE_ADDR, &data, 1);
+}
+
 void print_chflt(SpiritSPI dev) {
   printf("Channel Filter. M: %d, E: %d\n",
          _get_bitfield(dev, SP1_CHFLT, SP1_CHFLT_M),
@@ -1054,7 +1066,8 @@ void init_spirit(SpiritSPI dev, SpiritConf conf) {
   set_pckt_addr_len(dev, conf);
   set_pckt_len(dev, conf);
   set_pckt_flt_options(dev, conf);
-
+  set_tx_address(dev, conf);
+  set_rx_my_address(dev, conf);
   set_protocol_flags(dev, conf);
 
   printf(">>>\n");
