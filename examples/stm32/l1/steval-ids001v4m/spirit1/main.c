@@ -37,8 +37,8 @@
 #include <stdbool.h>
 
 #include "main.h"
-#include "spirit1.h"
-#include "steval-ids001v4m.h"
+#include <libopencm3-plus/hw-accesories/spirit1.h>
+#include <libopencm3-plus/steval-ids001v4m/steval-ids001v4m.h>
 
 #define TX() sp1_cmd(spsgrf_spi, SP1_CMD_TX)
 #define RX() sp1_cmd(spsgrf_spi, SP1_CMD_RX)
@@ -160,15 +160,6 @@ const struct rcc_clock_scale rcc_clock_config_32mhz = {
   .apb2_frequency = 32000000,
 };
 
-static void leds_init(void) {
-  /* GPIOB for LEDs */
-  rcc_periph_clock_enable(RCC_GPIOB);
-
-  /* GPIO0 y 1 for LEDs (RED and ORANGE respectively) */
-  gpio_mode_setup(LEDS_PORT, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE,
-                  GPIO0 | GPIO1);
-}
-
 void system_init(void) {
   /* CPU/uC general setup */
   rcc_clock_setup_pll(&rcc_clock_config_32mhz);
@@ -268,9 +259,8 @@ int main(void) {
   uint8_t rx_values[20];
   uint16_t status = 0x00;
   uint16_t status_new = 0x00;
-  uint16_t temp = 0x00;
+  //  uint16_t temp = 0x00;
   unsigned char rx_buf[97];
-  int rxfifo_count = 0;
 
   init_console();
 
@@ -427,7 +417,7 @@ int main(void) {
         printf("Reading RX buffer count\n");
         status = sp1_read(spsgrf_spi, SP1_LINEAR_FIFO_STATUS,
                           rx_values, 2, true);
-        temp = (rx_values[1] << 8) | rx_values[0];
+        //        temp = (rx_values[1] << 8) | rx_values[0];
         printf("RX buffer count: %d\n", get_elem_rxfifo(spsgrf_spi));
         rx_buf[get_elem_rxfifo(spsgrf_spi)] = '\0';
         read_buffer(spsgrf_spi, rx_buf);

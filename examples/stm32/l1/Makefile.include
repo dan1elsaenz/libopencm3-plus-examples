@@ -21,7 +21,7 @@
 
 LIBNAME		= opencm3_stm32l1
 DEFS		+= -DSTM32L1
-LDLIBS		+= -lopencm3_plus_steval-ids001v4m
+LDLIBS		+= -lopencm3_plus_steval-ids001v4m -lm
 
 FP_FLAGS	?= -mfloat-abi=soft
 ARCH_FLAGS	= -mthumb -mcpu=cortex-m3 $(FP_FLAGS)
