@@ -479,6 +479,7 @@ void exti9_5_isr(void) {
   unsigned char rx_buf[97];
   exti_reset_request(EXTI7);
   irq_status = get_irq_status(spsgrf_spi);
+  print_irq_status(irq_status);
   printf("Interrupt!\n");
   switch (irq_status) {
   case IRQ_RX_DATA_RDY:
