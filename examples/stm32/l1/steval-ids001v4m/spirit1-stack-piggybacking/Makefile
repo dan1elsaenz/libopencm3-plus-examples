@@ -19,11 +19,14 @@
 
 BINARY = main
 
+TYPE = RECV ## Or TRANS
+
 OOCD_INTERFACE = stlink-v2-1
 #OOCD_EXTRA = -c "hla_serial \x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x31"
 
 LDSCRIPT = ../../../../../libopencm3-plus/lib/libopencm3_plus_steval-ids001v4m.ld
 LDLIBS +=
+CFLAGS += -D$(TYPE)
 
 OBJS	+=
 

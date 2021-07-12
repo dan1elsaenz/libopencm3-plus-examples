@@ -40,6 +40,13 @@
 #include <libopencm3-plus/hw-accesories/spirit1.h>
 #include <libopencm3-plus/steval-ids001v4m/steval-ids001v4m.h>
 
+#ifdef RECV
+#pragma message "Setting for Receiver"
+#endif // RECV
+#ifdef TRANS
+#pragma message "Setting for TRANS"
+#endif // TRANS
+
 #define TX() sp1_cmd(spsgrf_spi, SP1_CMD_TX)
 #define RX() sp1_cmd(spsgrf_spi, SP1_CMD_RX)
 
@@ -76,21 +83,28 @@ SpiritConf spirit_conf = {
   .pckt_whitening = true,
   .pckt_crc_mode = PCKT_CRC_0x07,
   .pckt_preamble_len = 0x7,
-  .pckt_frmt = PCKT_FRMT_Basic,
+  .pckt_frmt = PCKT_FRMT_STack, //Using STack protocol
   .pckt_rx_mode = PCKT_RX_MODE_Normal,
-  .pckt_addr_len = 0x1, //0,1 for Basic, 2 for STack
+  .pckt_addr_len = 0x2, //0,1 for Basic, 2 for STack
   .pckt_fix_var = PCKT_VAR_LEN,
   .pckt_len = 0x0012, // not sure if this is set automatically somewhere else
   .pckt_flt_options = DEST_VS_SOURCE_ADDR | RX_TIMEOUT_AND_OR_SELECT | CRC_CHECK,
   .rx_my_address = 0x24, // Address on receiver of transmitter
   .tx_address = 0x24, // Address on transmitter
   .protocol_nmax_retx = 0x0,
-  .protocol_nack_tx = true,
+#ifdef TRANS
+  .protocol_nack_tx = false,
   .protocol_auto_ack = false,
+  .protocol_piggybacking = false,
+#endif // TRANS
+#ifdef RECV
+  .protocol_nack_tx = true,
+  .protocol_auto_ack = true,
+  .protocol_piggybacking = true,
+#endif // RECV
   .protocol_pers_rx = false,
   .protocol_pers_tx = false,
   .protocol_ldc_reload_on_sync = false,
-  .protocol_piggybacking = false,
   .protocol_seed_reload = false,
   .protocol_csma_on = false,
   .protocol_csma_pers_on = false,
@@ -335,9 +349,18 @@ int main(void) {
   rco_calib(spsgrf_spi, true);
   vco_calib(spsgrf_spi, true);
 
+#ifdef RECV
+  printf("Receiver!");
+#endif // RECV
+
+#ifdef TRANS
+  printf("Transmitter!");
+#endif // TRANS
+
   printf("\nType your command: r/w/c reg_num readings\n");
-  printf("(r) read, (w) write, (c) cmd, (s) get status, (b) "
-         "read&print buffer\n");
+  printf("(r) read, (w) write, (c) cmd, (s) get status, (b) read "
+         "buffer, (t) tx buffer and TX, (p) piggybacking info "
+         "and RX\n");
   while (true) {
     if (poll(stdin) > 0) {
       read_serial(my_input);
@@ -434,8 +457,22 @@ int main(void) {
         printf("TX FIFO used: %d\n", get_elem_txfifo(spsgrf_spi));
         printf("TX execute!\n");
         TX();
-        wait_state(spsgrf_spi, SP1_ST_READY);
+        // wait_state(spsgrf_spi, SP1_ST_READY);
         printf("TX FIFO used: %d\n", get_elem_txfifo(spsgrf_spi));
+        printf("--------\n");
+        break;
+      case 'p':
+        printf("Piggyback buffer ...\n");
+        printf("Type your data!\n");
+        read_serial(my_input);
+        printf("From keyboard: %s\n", my_input);
+        write_buffer(spsgrf_spi, &spirit_conf, my_input, 96);
+        printf("TX FIFO used: %d\n", get_elem_txfifo(spsgrf_spi));
+        printf("RX execute!\n");
+        RX();
+        wait_state(spsgrf_spi, SP1_ST_RX);
+        printf("TX FIFO used for piggybacking: %d\n",
+               get_elem_txfifo(spsgrf_spi));
         printf("--------\n");
         break;
       default:
@@ -450,7 +487,8 @@ int main(void) {
     endcmd:
       printf("\n");
       printf("(r) read, (w) write, (c) cmd, (s) get status, (b) read "
-             "buffer, (t) tx buffer\n");
+             "buffer, (t) tx buffer and TX, (p) piggybacking info "
+             "and RX\n");
     }
     /* EEPROM test code */
     /* gpio_clear(GPIOA, GPIO9); */
@@ -476,21 +514,21 @@ int main(void) {
 
 void exti9_5_isr(void) {
   uint32_t irq_status;
+  int elems;
   unsigned char rx_buf[97];
   exti_reset_request(EXTI7);
   irq_status = get_irq_status(spsgrf_spi);
   print_irq_status(irq_status);
   printf("Interrupt!\n");
-  switch (irq_status) {
-  case IRQ_RX_DATA_RDY:
+  if ((irq_status & IRQ_RX_DATA_RDY) != 0) {
     printf("irq: RX Data ready\n");
-    printf("RX buffer count: %d\n", get_elem_rxfifo(spsgrf_spi));
-    rx_buf[get_elem_rxfifo(spsgrf_spi)] = '\0';
+    elems = get_elem_rxfifo(spsgrf_spi);
+    printf("RX buffer count: %d\n", elems);
+    rx_buf[elems] = '\0';
     read_buffer(spsgrf_spi, rx_buf);
     printf("Received data:\n");
     printf("%s\n", rx_buf);
-    break;
-  default:
+  } else {
     printf("Don't know how to handle this!\n");
   }
   printf("IRQ end\n");
