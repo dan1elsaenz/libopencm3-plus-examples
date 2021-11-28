@@ -91,8 +91,11 @@ static void spi_setup(void) {
    * Data frame format: 16-bit
    * Frame format: MSB First
    */
-  spi_init_master(SPI2, SPI_CR1_BAUDRATE_FPCLK_DIV_256, SPI_CR1_CPOL_CLK_TO_0_WHEN_IDLE,
-                  SPI_CR1_CPHA_CLK_TRANSITION_1, SPI_CR1_DFF_16BIT, SPI_CR1_MSBFIRST);
+  spi_init_master(SPI2, SPI_CR1_BAUDRATE_FPCLK_DIV_64,
+                  SPI_CR1_CPOL_CLK_TO_0_WHEN_IDLE,
+                  SPI_CR1_CPHA_CLK_TRANSITION_1,
+                  SPI_CR1_DFF_16BIT,
+                  SPI_CR1_MSBFIRST);
 
   /*
    * Set NSS management to software.
@@ -184,7 +187,7 @@ static void system_init(void) {
 int main(void)
 {
 
-  uint16_t rx_value = 0x42;
+  uint16_t rx_value = 0x0;
 
   system_init();
 
@@ -203,6 +206,7 @@ int main(void)
     rx_value = spi_read(SPI2);
     usart_send_blocking(USART2, rx_value >> 8);
     usart_send_blocking(USART2, (0x00FF & rx_value));
+    usart_send_blocking(USART2, 0x30);
     gpio_set(SPSGRF_CS_PORT, SPSGRF_CS);
 
     printf("A\n");

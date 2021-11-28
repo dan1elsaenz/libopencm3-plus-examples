@@ -1,0 +1,249 @@
+                                                               
+help                                                                         
+help  List commands                                                          
+                                                                             
+reboot  Reboot device                                                        
+                                                                             
+dfu  put the device in dfu mode (cli disabled)                               
+                                                                             
+interactive u Set interactive mode                                           
+                                                                             
+fwVersion  Get fw version                                                    
+                                                                             
+SpiritPktBasicInit uuwuuuuuuu                                                
+byte preamble length                                                         
+byte sync length
+uint32 sync word
+(0/1) fix or variable mode length
+byte No bit in length field (if variable mode length is used)
+byte CRC mode
+byte control field length
+(1/0) address field enable
+(1/0) FEC enable
+(1/0) whitening enable
+
+SpiritPktBasicGetInfo  
+
+SpiritPktStackInit uuwuuuuuu 
+byte preamble length
+byte sync length
+uint32 sync word
+(0/1) fix or variable mode length
+byte No bit in length field (if variable mode length is used)
+byte CRC mode
+byte control field length
+(1/0) address field enable
+(1/0) FEC enable
+(1/0) whitening enable
+
+SpiritPktStackLlpInit uuu 
+
+SpiritPktStackRequireAck u 
+
+SpiritPktStackGetInfo  
+
+SpiritPktMbusInit uuu 
+byte WMBUS mode :
+ - 0 MBUS_SUBMODE_S1_S2_LONG_HEADER
+ - 1 MBUS_SUBMODE_S1_M_S2_T2_OTHER_TO_METER
+ - 3 MBUS_SUBMODE_T1_T2_METER_TO_OTHER
+ - 5 MBUS_SUBMODE_R2_SHORT_HEADER
+byte preamble to add to the standard default preamble
+byte postamble to add to the standard default postamble
+
+SpiritPktMbusGetInfo  
+
+SpiritPktBasicSetPayloadLength v payload length
+
+SpiritPktBasicGetPayloadLength  
+
+SpiritPktStackSetPayloadLength v payload length
+
+SpiritPktStackGetPayloadLength  
+
+SpiritPktMbusSetPayloadLength v payload length
+
+SpiritPktMbusGetPayloadLength  
+
+SpiritTimerSetRxTimeoutUs w RX timeout in us
+
+SpiritTimerSetWakeUpTimerUs w Wakeup timer timeout in us
+
+SpiritTimerGetRxTimeout  RX timeout in us
+
+SpiritRadioInit vwwuuwwww 
+int16 XTAL Offset [ppm]
+uint32 frequency base [Hz]
+uint32 channel spacing [Hz]
+byte channel number
+byte modulation
+uint32 data rate [bps]
+uint32 frequency deviation [Hz]
+uint32 channel filter bandwidth [Hz]
+uint32 XTAL frequency, 0 means auto [Hz]
+
+SpiritRadioGetInfo  
+
+SpiritRadioGetXtalFrequency  
+Get the XTAL frequency [Hz]
+
+SpiritRadioSetFrequencyBase w 
+nuint32 frequency base [Hz]
+
+SpiritRadioGetFrequencyBase  
+
+SpiritRadioSetPALeveldBm wu output power in dBm
+pa level index
+
+SpiritRadioGetPALeveldBm u pa level index
+
+SpiritGpioInit uuu 
+gpio pin (0,1,2,3)
+gpio mode:
+ - 0 input
+ - 1 output lp
+ - 2 output hp
+signal (code)
+
+SpiritIrq wu 
+uint32_t irq code
+(1/0) enable/disable
+
+SpiritIrqGetStatus  
+
+SpiritQiGetRssidBm  
+
+SpiritGetVersion  
+
+SdkEvalIrqHandler u 1 get IRQ in blocking mode
+
+SpiritTimerLdcrMode uu To set the LDC mode
+
+SpiritCalibration uu To calibrate both VCO and RCO
+
+SpiritWhitening u To enable or disable whitening
+
+SpiritDirectRfSetTxMode u 
+
+SpiritDirectRfSetRxMode u 
+
+SpiritRadioSetPALevelNdBm wu used to set the specified power level at x dbm
+
+SpiritRadioSetPALevelMaxInd u to set the max index for PA
+
+SpiritLinearFifoSetAlmostFullThresholdRx u to set the Rx FIFO Thr
+
+SpiritLinearFifoSetAlmostEmptyThresholdTx u to set the Tx FIFO Thr
+
+SpiritRadioSetModulation u 
+uint8 Modulation code
+
+SpiritRadioGetModulation  
+
+SpiritGetLibVersion  
+
+SpiritCalibrationWA u 
+
+StopCmd  Stops a blocking procedure
+
+SpiritGetNBytes v this handler is to get N bytes in reception
+
+SpiritGetNBytesBatch ww this handler is to get N bytes in reception
+
+SpiritSendPattern b this handler is to sent a pattern sequence
+
+SpiritSendNBytes b this handler is to sent a specified bytes sequence
+
+SpiritSendNBytesBatch wwb this handler is to sent a specified bytes sequence every a specified num of ms
+
+SpiritSendPatternGpio w this handler is to sent a pattern sequence through the GPIO pin
+
+SpiritSendBatchLP u Enables the low power transmission in batch
+
+SpiritGetBatchLP u Enables the low power reception in batch
+
+SpiTraffic vvv Produces SPI transactions with intervals specified
+
+SampleDataClock w Sample data arriving on the GPIO0 based on GPIO1 clock
+
+SpiritGetRcoFrequency  Returns the RCO frequency in Hz
+
+SdkEvalSpiCommandStrobes u 
+Command code
+
+SdkEvalSpiReadRegisters uu 
+Register address
+No of registers to read                                                                   
+                                                                                          
+SdkEvalSpiWriteRegisters ub                                                               
+Register address                                                                          
+Registers values i.e. /x00/x01                                                            
+                                                                                          
+SdkEvalSpiReadFifo u                                                                      
+No of byte to read from RX FIFO                                                           
+                                                                                          
+SdkEvalSpiWriteFifo b                                                                     
+Data to write in TX FIFO                                                                  
+                                                                                          
+S2MGpioIrqConfiguration uu                                                                
+GPIO (0,1,2,3)                                                                            
+enable/disable (1,0)                                                                      
+                                                                                          
+S2MGpioGetValue u                                                                         
+GPIO (0,1,2,3)                                                                            
+                                                                                          
+SdkEvalSdn u 
+0 exit shutdown
+1 enter shutdown
+
+SdkEvalRfboardIdentification w 
+xtal frequency in MHz or 0 if auto detection
+
+STLM75Init  
+
+STLM75Read  
+
+LIS3DHInit  
+
+LIS3DHRead  
+
+CliGetTimer  
+
+CliResetTimer  
+
+SdkEvalLedHandler uu 
+Led number
+1: ON, 0: OFF
+
+EepromStatus  
+
+EepromWritePage vub 
+Page number from 0 to 255.
+Address offset from 0 to 31.
+Data to write into the EEPROM.
+
+EepromReadPage vuu 
+Page number from 0 to 255.
+Address offset from 0 to 31.
+Number of bytes to read.
+
+RegulateVRf v 
+Regulate the supplyvoltage for Spirit1 (arg passed in millivolt)
+
+GetVRf  
+Get the supplyvoltage for Spirit1 (returned in millivolt)
+
+SdkEvalIrqRaised u used to know if a Spirit IRQ has been raised without read the status registers
+
+SdkEvalGetVersion  to know the motherboard version
+
+TimeMeasureService uu 
+
+GetTimeMeasure u 
+
+SdkEvalIrqRaised u used to know if a Spirit IRQ has been raised without read the status registers
+
+SdkEvalHiZ  
+
+SdkComBaudrate w 
+
