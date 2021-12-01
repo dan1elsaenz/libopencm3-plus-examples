@@ -25,9 +25,12 @@
 #include <stdio.h>
 #include <libopencm3-plus/utils/misc.h>
 #include <libopencm3-plus/stm32l0538-disco/leds.h>
+#include <libopencm3-plus/stm32l0538-disco/stm32l0538-disco.h>
 #include <limits.h>
 #include <stdbool.h>
 #include <libopencm3/stm32/syscfg.h>
+#include <libopencm3-plus/hw-accesories/gde021a1.h>
+
 
 #define LED_GREEN_PIN GPIO4
 #define LED_GREEN_PORT GPIOB
@@ -35,16 +38,7 @@
 #define LED_RED_PORT GPIOA
 
 
-void leds_init(void) {
-	rcc_peripheral_enable_clock(&RCC_IOPENR, RCC_IOPENR_IOPAEN);
-	gpio_mode_setup(GPIOA, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO5);
-	rcc_peripheral_enable_clock(&RCC_IOPENR, RCC_IOPENR_IOPBEN);
-	gpio_mode_setup(GPIOB, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO4);
-}
-
-void system_init(void) {
-  leds_init();
-  //rcc_clock_setup_hsi(&rcc_hsi_configs[RCC_CLOCK_HSI_48MHZ]);
+void rcc_init(void) {
 
   rcc_osc_off(RCC_PLL);
   while (rcc_is_osc_ready(RCC_PLL)) {};
@@ -92,6 +86,12 @@ void system_init(void) {
   rcc_osc_on(RCC_HSI48);
   rcc_wait_for_osc_ready(RCC_HSI48);
 
+}
+
+void system_init(void) {
+  leds_init();
+  rcc_init();
+
   printled2(3, 4, LRED );
 
   devoptab_list[0] = &dotab_cdcacm;
@@ -113,6 +113,40 @@ void init_console(void) {
   printf("Stdin cleared\n");
 }
 
+const unsigned char init_data[]={
+  0x82, 0x00, 0x00, 0x00, 0xAA, 0x00, 0x00, 0x00,
+  0xAA, 0xAA, 0x00, 0x00, 0xAA, 0xAA, 0xAA, 0x00,
+  0x55, 0xAA, 0xAA, 0x00, 0x55, 0x55, 0x55, 0x55,
+  0xAA, 0xAA, 0xAA, 0xAA, 0x55, 0x55, 0x55, 0x55,
+  0xAA, 0xAA, 0xAA, 0xAA, 0x15, 0x15, 0x15, 0x15,
+  0x05, 0x05, 0x05, 0x05, 0x01, 0x01, 0x01, 0x01,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x41, 0x45, 0xF1, 0xFF, 0x5F, 0x55, 0x01, 0x00,
+  0x00, 0x00};
+
+static uint8_t rx_values[3096/6];
+
+const unsigned char image[]={
+  0xFF, 0xFF, 0xFF, 0xff, 0xFF, 0xFF, 0xFF, 0xFF,
+  0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF,
+  0xFF, 0x3F, 0xFF, 0x00, 0xFF, 0xFF, 0xFC, 0xFF,
+  0xFF, 0x3F, 0xFF, 0x00, 0xFF, 0xFF, 0xFC, 0xFF,
+  0xFF, 0x3F, 0xFF, 0x00, 0xFF, 0xFF, 0xFC, 0xFF,
+  0xFF, 0x3F, 0xFF, 0x00, 0xFF, 0xFF, 0xFC, 0xFF,
+  0xFF, 0x3F, 0xFF, 0x00, 0xFF, 0xFF, 0xFC, 0xFF,
+  0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
+  0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
+  0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
+  0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
+  0xFF, 0x3F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFC, 0xFF,
+  0xFF, 0x3F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFC, 0xFF,
+  0xFF, 0x3F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFC, 0xFF,
+  0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF,
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
+};
 
 int main(void)
 {
@@ -125,7 +159,105 @@ int main(void)
   int c=0;
   int n_char=0;
 
+  for (int i=0; i<512; i++){
+     rx_values[i]=0;
+  }
 
+  printled2(5, 4, LRED );
+
+  printf("Reading busy\n\r");
+  c=getc(stdin);
+
+  printf("Busy: %d\n", gde021a1_busy(gde021a1_spi));
+
+  gde021a1_setup();
+  spi1_epaper_setup();
+  printf("Busy: %d\n", gde021a1_busy(gde021a1_spi));
+
+  rx_values[0]=0x00+0x03;
+  gde021a1_cmd_data(gde021a1_spi, 0x11, rx_values, 1);
+
+  //X start/end
+  rx_values[0]=0x00;
+  rx_values[1]=0x11;
+  gde021a1_cmd_data(gde021a1_spi, 0x44, rx_values, 2);
+
+  //Y start/end
+  rx_values[0]=0x00;
+  rx_values[1]=0xAB;
+  gde021a1_cmd_data(gde021a1_spi, 0x45, rx_values, 2);
+
+  //x counter
+  rx_values[0]=0x00;
+  gde021a1_cmd_data(gde021a1_spi, 0x4E, rx_values, 1);
+
+  //y counter
+  rx_values[0]=0x00;
+  gde021a1_cmd_data(gde021a1_spi, 0x4F, rx_values, 1);
+
+  rx_values[0]=0x1F;
+  gde021a1_cmd_data(gde021a1_spi, 0xF0, rx_values, 1);
+
+  rx_values[0]=0xA0;
+  gde021a1_cmd_data(gde021a1_spi, 0x2C, rx_values, 1);
+
+  rx_values[0]=0x63;
+  gde021a1_cmd_data(gde021a1_spi, 0x3C, rx_values, 1);
+
+  //gde021a1_cmd(gde021a1_spi, 0x32);
+  rx_values[0]=0x63;
+  gde021a1_cmd_data(gde021a1_spi, 0x32, init_data, 90);
+  printf("Busy: %d\n", gde021a1_busy(gde021a1_spi));
+
+  gde021a1_cmd_data(gde021a1_spi, 0x24, rx_values, 0);
+
+  gpio_clear(gde021a1_spi.spicsport, gde021a1_spi.spi_cs);
+  gpio_set(gde021a1_spi.dc_port, gde021a1_spi.dc_pin);
+  j=0;
+  int u=0;
+  int v=0;
+  int k=0;
+  for (int i=0; i<3096; i++){
+    //rx_values[j]=i*255/3096;
+    //rx_values[j]=255;
+    my_spi_xfer(gde021a1_spi.spi, image[j+k*8]);
+    //gde021a1_data(gde021a1_spi, rx_values, 512);
+    if (k==15) {
+      k=0;
+    }
+    if (j==7){
+      j=0; //restart symbol col
+    } else {
+      j++; //increment symbol col
+    }
+    if (u==((18)-1)) {
+      u=0; //start img col
+      v++; //increment img row
+      k++; //increment symbol row
+      j=0; //restart symbol col
+    }
+    else {
+      u++; //increment im col
+
+    }
+  }
+  gpio_set(gde021a1_spi.dc_port, gde021a1_spi.dc_pin);
+  gpio_set(gde021a1_spi.spicsport, gde021a1_spi.spi_cs);
+
+  rx_values[0]=0x03;
+  gde021a1_cmd_data(gde021a1_spi, 0x21, rx_values, 1);
+
+  rx_values[0]=0xC4;
+  gde021a1_cmd_data(gde021a1_spi, 0x22, rx_values, 1);
+
+  rx_values[0]=0x63;
+  gde021a1_cmd_data(gde021a1_spi, 0x20, rx_values, 0);
+
+  printf("Busy: %d\n", gde021a1_busy(gde021a1_spi));
+
+
+
+  printled2(7, 4, LRED );
   while (1){
     printf("Test\n\r");
     if ((poll(stdin) > 0)) {

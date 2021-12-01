@@ -16,5 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <libopencm3-plus/hw-accesories/gde021a1.h>
+
+extern Gde021a1SPI gde021a1_spi;
+
 void system_init(void);
 void leds_init(void);
