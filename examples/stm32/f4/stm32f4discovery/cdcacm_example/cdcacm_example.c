@@ -19,9 +19,11 @@
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/timer.h>
+//#include <libopencm3/stm32/usart.h>
 #include <libopencm3-plus/newlib/syscall.h>
 #include "cdcacm_example.h"
-#include <libopencm3-plus/cdcacm_one_serial/cdcacm.h>
+#include <libopencm3-plus/newlib/devices/cdcacm.h>
+//#include <libopencm3-plus/newlib/devices/usart.h>
 #include <stdio.h>
 #include <libopencm3-plus/utils/misc.h>
 #include <libopencm3-plus/stm32f4discovery/leds.h>
@@ -36,7 +38,16 @@ void leds_init(void) {
 void system_init(void) {
   rcc_clock_setup_pll(&rcc_hse_8mhz_3v3[RCC_CLOCK_3V3_168MHZ]);
   leds_init();
+  devoptab_list[0] = &dotab_cdcacm;
+  devoptab_list[1] = &dotab_cdcacm;
+  devoptab_list[2] = &dotab_cdcacm;
   cdcacm_init();
+  // USART doesn't work on stm32f407discovery (any version)
+  // VCP is not physically connected to st-link
+  //devoptab_list[0] = &dotab_usart;
+  //devoptab_list[1] = &dotab_usart;
+  //devoptab_list[2] = &dotab_usart;
+  //usart_init();
 }
 
 int main(void)
