@@ -21,22 +21,25 @@
 #include <libopencm3/stm32/timer.h>
 #include <libopencm3-plus/newlib/syscall.h>
 #include "cdcacm_example.h"
-#include <libopencm3-plus/cdcacm_one_serial/cdcacm.h>
+#include <libopencm3-plus/newlib/devices/cdcacm.h>
+#include <libopencm3-plus/newlib/devices/usart.h>
 #include <stdio.h>
 #include <libopencm3-plus/utils/misc.h>
 #include <libopencm3-plus/stm32f3discovery/leds.h>
 #include <limits.h>
 #include <stdbool.h>
 
-void leds_init(void) {
-	rcc_peripheral_enable_clock(&RCC_AHBENR, RCC_AHBENR_IOPEEN);
-	gpio_mode_setup(GPIOE, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO8| GPIO9| GPIO10| GPIO11| GPIO12| GPIO13| GPIO14| GPIO15);
-}
-
 void system_init(void) {
   rcc_clock_setup_hsi(&rcc_hsi_configs[RCC_CLOCK_HSI_48MHZ]);
   leds_init();
-  cdcacm_init();
+  //devoptab_list[0] = &dotab_cdcacm;
+  //devoptab_list[1] = &dotab_cdcacm;
+  //devoptab_list[2] = &dotab_cdcacm;
+  //cdcacm_init();
+  devoptab_list[0] = &dotab_usart;
+  devoptab_list[1] = &dotab_usart;
+  devoptab_list[2] = &dotab_usart;
+  usart_init();
 }
 
 int main(void)
