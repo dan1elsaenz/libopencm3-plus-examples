@@ -16,5 +16,35 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-void system_init(void);
-void leds_init(void);
+#include <libopencm3/stm32/rcc.h>
+#include <libopencm3/stm32/gpio.h>
+#include <libopencm3/stm32/timer.h>
+#include <libopencm3-plus/newlib/syscall.h>
+#include <libopencm3-plus/newlib/devices/cdcacm.h>
+#include <libopencm3-plus/newlib/devices/usart.h>
+#include <stdio.h>
+#include <libopencm3-plus/utils/misc.h>
+#include <libopencm3-plus/stm32f429idiscovery/leds.h>
+#include <limits.h>
+#include <stdbool.h>
+#include <libopencm3/stm32/syscfg.h>
+
+#include "main.h"
+
+void system_init(void) {
+  rcc_clock_setup_pll(&rcc_hse_8mhz_3v3[RCC_CLOCK_3V3_168MHZ]);
+  leds_init();
+}
+
+int main(void)
+{
+  system_init();
+
+  while (true) {
+    gpio_toggle(LRED);
+    wait(1000);
+    gpio_toggle(LGREEN);
+    wait(1000);
+  }
+
+}
