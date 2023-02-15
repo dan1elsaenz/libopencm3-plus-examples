@@ -26,14 +26,12 @@
 
 #include <libopencm3-plus/utils/misc.h>
 
-#include <libopencm3-plus/stm32f429idiscovery/clock.h>
-#include <libopencm3-plus/stm32f429idiscovery/console.h>
-#include <libopencm3-plus/stm32f429idiscovery/gfx.h>
-#include <libopencm3-plus/stm32f429idiscovery/lcd-spi.h>
-#include <libopencm3-plus/stm32f429idiscovery/sdram.h>
+#include <libopencm3-plus/hw-accesories/cm3/clock.h>
+#include <libopencm3-plus/hw-accesories/lcd/gfx.h>
+#include <libopencm3-plus/hw-accesories/lcd/lcd-spi.h>
+#include <libopencm3-plus/hw-accesories/sdram_stm32f429idiscovery.h>
 
 #define SLEEP_TIME 2000
-#define CONSOLE_BAUD_RATE 115200
 
 void clock_setup(void) {
   const uint32_t one_milisecond_rate = 168000;
@@ -57,11 +55,10 @@ int main(void) {
   int planet_1, planet_2, planet_3;
 
   clock_setup();
-  console_setup(CONSOLE_BAUD_RATE);
   sdram_init();
   lcd_spi_init();
-  console_puts("LCD Initialized\n");
-  console_puts("Should have a checker pattern, press any key to proceed\n");
+  printf("LCD Initialized\n");
+  printf("Should have a checker pattern, press any key to proceed\n");
   msleep(SLEEP_TIME);
   /*	(void) console_getc(1); */
   gfx_init(lcd_draw_pixel, LCD_WIDTH, LCD_HEIGHT);
@@ -80,8 +77,8 @@ int main(void) {
   gfx_setCursor(15, 60);
   gfx_puts("stuff on the LCD screen.");
   lcd_show_frame();
-  console_puts("Now it has a bit of structured graphics.\n");
-  console_puts("Press a key for some simple animation.\n");
+  printf("Now it has a bit of structured graphics.\n");
+  printf("Press a key for some simple animation.\n");
   msleep(SLEEP_TIME);
   /*	(void) console_getc(1); */
   gfx_setTextColor(LCD_YELLOW, LCD_BLACK);

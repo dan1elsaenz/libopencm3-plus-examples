@@ -26,14 +26,11 @@
 #include <libopencm3/stm32/i2c.h>
 #include <libopencm3/stm32/rcc.h>
 
-#include <libopencm3-plus/stm32f429idiscovery/clock.h>
-#include <libopencm3-plus/stm32f429idiscovery/console.h>
-#include <libopencm3-plus/stm32f429idiscovery/i2c-lcd-touch.h>
-#include <libopencm3-plus/stm32f429idiscovery/lcd-serial-touch.h>
-#include <libopencm3-plus/stm32f429idiscovery/lcd-spi.h>
-#include <libopencm3-plus/stm32f429idiscovery/sdram.h>
-
-#define CONSOLE_BAUD_RATE 115200
+#include <libopencm3-plus/hw-accesories/cm3/clock.h>
+#include <libopencm3-plus/hw-accesories/tft_lcd/i2c-lcd-touch.h>
+#include <libopencm3-plus/hw-accesories/tft_lcd/lcd-serial-touch.h>
+#include <libopencm3-plus/hw-accesories/lcd/lcd-spi.h>
+#include <libopencm3-plus/hw-accesories/sdram_stm32f429idiscovery.h>
 
 void clock_setup(void) {
   const uint32_t one_milisecond_rate = 168000;
@@ -51,7 +48,6 @@ void clock_setup(void) {
 
 int main(void) {
   clock_setup();
-  console_setup(CONSOLE_BAUD_RATE);
   sdram_init();
   lcd_spi_init();
   tft_setup();

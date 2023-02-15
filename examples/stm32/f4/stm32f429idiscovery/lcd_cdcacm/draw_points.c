@@ -26,16 +26,13 @@
 #include <libopencm3/stm32/i2c.h>
 #include <libopencm3/stm32/rcc.h>
 
-#include <libopencm3-plus/stm32f429idiscovery/clock.h>
-#include <libopencm3-plus/stm32f429idiscovery/console.h>
-#include <libopencm3-plus/stm32f429idiscovery/i2c-lcd-touch.h>
-#include <libopencm3-plus/stm32f429idiscovery/lcd-serial-touch.h>
-#include <libopencm3-plus/stm32f429idiscovery/lcd-spi.h>
-#include <libopencm3-plus/stm32f429idiscovery/sdram.h>
+#include <libopencm3-plus/hw-accesories/cm3/clock.h>
+#include <libopencm3-plus/hw-accesories/tft_lcd/i2c-lcd-touch.h>
+#include <libopencm3-plus/hw-accesories/tft_lcd/lcd-serial-touch.h>
+#include <libopencm3-plus/hw-accesories/lcd/lcd-spi.h>
+#include <libopencm3-plus/hw-accesories/sdram_stm32f429idiscovery.h>
 #include <libopencm3-plus/newlib/devices/cdcacm.h>
 #include <libopencm3-plus/newlib/devices/usart.h>
-
-#define CONSOLE_BAUD_RATE 115200
 
 #define LED_GREEN_PIN GPIO13
 #define LED_GREEN_PORT GPIOB
@@ -86,7 +83,7 @@ void init_console(void) {
   setvbuf(stdout, NULL, _IONBF,
           0); // Sets stdin in unbuffered mode (normal for usart com)
 
-  while (poll(stdin) > 0) {
+  while (lo_poll(stdin) > 0) {
     printf("Cleaning stdin\n");
     getc(stdin);
   }
@@ -96,7 +93,6 @@ void init_console(void) {
 int main(void) {
   system_init();
   init_console();
-  console_setup(CONSOLE_BAUD_RATE);
   sdram_init();
   lcd_spi_init();
   tft_setup();
@@ -150,9 +146,9 @@ int main(void) {
 
     /* USB terminal */
     printf("Test\n\r");
-    if ((poll(stdin) > 0)) {
+    if ((lo_poll(stdin) > 0)) {
       i=0;
-      if (poll(stdin) > 0) {
+      if (lo_poll(stdin) > 0) {
     	c=0;
     	while (c!='\r') {
     	  c=getc(stdin);
