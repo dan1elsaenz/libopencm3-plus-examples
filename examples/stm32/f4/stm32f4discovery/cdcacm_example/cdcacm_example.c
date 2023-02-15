@@ -63,16 +63,16 @@ int main(void)
   setvbuf(stdin,NULL,_IONBF,0); // Sets stdin in unbuffered mode (normal for usart com)
   setvbuf(stdout,NULL,_IONBF,0); // Sets stdin in unbuffered mode (normal for usart com)
 
-  while (poll(stdin) > 0) {
+  while (lo_poll(stdin) > 0) {
     printf("Cleaning stdin\n");
     getc(stdin);
   }
 
   while (1){
     printf("Test\n");
-    if ((poll(stdin) > 0)) {
+    if ((lo_poll(stdin) > 0)) {
       i=0;
-      if (poll(stdin) > 0) {
+      if (lo_poll(stdin) > 0) {
     	c=0;
     	while (c!='\r') {
     	  c=getc(stdin);
