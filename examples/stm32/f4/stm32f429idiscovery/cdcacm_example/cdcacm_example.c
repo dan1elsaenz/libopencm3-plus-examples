@@ -48,14 +48,14 @@ void system_init(void) {
 
   rcc_clock_setup_pll(&rcc_hse_8mhz_3v3[RCC_CLOCK_3V3_168MHZ]);
 
-  /* devoptab_list[0] = &dotab_cdcacm; */
-  /* devoptab_list[1] = &dotab_cdcacm; */
-  /* devoptab_list[2] = &dotab_cdcacm; */
-  /* cdcacm_f429_init(); */
-  devoptab_list[0] = &dotab_usart;
-  devoptab_list[1] = &dotab_usart;
-  devoptab_list[2] = &dotab_usart;
-  usart_init();
+  devoptab_list[0] = &dotab_cdcacm;
+  devoptab_list[1] = &dotab_cdcacm;
+  devoptab_list[2] = &dotab_cdcacm;
+  cdcacm_f429_init();
+  /* devoptab_list[0] = &dotab_usart; */
+  /* devoptab_list[1] = &dotab_usart; */
+  /* devoptab_list[2] = &dotab_usart; */
+  /* usart_init(); */
 }
 
 void init_console(void) {
@@ -64,7 +64,7 @@ void init_console(void) {
   setvbuf(stdout, NULL, _IONBF,
           0); // Sets stdin in unbuffered mode (normal for usart com)
 
-  while (poll(stdin) > 0) {
+  while (lo_poll(stdin) > 0) {
     printf("Cleaning stdin\n");
     getc(stdin);
   }
@@ -86,9 +86,9 @@ int main(void)
 
   while (1){
     printf("Test\n\r");
-    if ((poll(stdin) > 0)) {
+    if ((lo_poll(stdin) > 0)) {
       i=0;
-      if (poll(stdin) > 0) {
+      if (lo_poll(stdin) > 0) {
     	c=0;
     	while (c!='\r') {
     	  c=getc(stdin);
