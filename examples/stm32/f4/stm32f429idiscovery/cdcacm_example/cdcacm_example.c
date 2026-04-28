@@ -84,18 +84,48 @@ int main(void)
   int n_char=0;
 
 
-  while (1){
-    printf("Test\n\r");
-    if ((lo_poll(stdin) > 0)) {
-      i=0;
-      if (lo_poll(stdin) > 0) {
-    	c=0;
-    	while (c!='\r') {
-    	  c=getc(stdin);
-    	  i++;
-    	  putc(c, stdout);
-    	}
+  // while (1){
+  //   printf("Test\n\r");
+  //   if ((lo_poll(stdin) > 0)) {
+  //     i=0;
+  //     if (lo_poll(stdin) > 0) {
+  //   	c=0;
+  //   	while (c!='\r') {
+  //   	  c=getc(stdin);
+  //   	  i++;
+  //   	  putc(c, stdout);
+  //   	}
+  //     }
+  //   }
+  // }
+
+  int contador = 0;     // Contador de 0-10
+  bool is_printing = 0; // Activar/desactivar impresión
+
+  while (1) {
+    // Si presionó una tecla
+    if (lo_poll(stdin) > 0) {
+      c = getc(stdin);
+      putc(c, stdout);
+
+      if (c == '\r') {
+        // Enter activa/desactiva conteo
+        is_printing = true;
+        contador = 0;
+        putc('\n', stdout);
+      } else {
+        // Detener conteo si es otra tecla
+        is_printing = false;
       }
+    }
+    
+    // Si está imprimiendo
+    if (is_printing) {
+      printf("Conteo: %d\n\r", contador);
+      contador = (contador + 1) % 11;
+
+      // Esperar 0.5s aprox mediante prueba y error
+      for (volatile int s = 0; s < 168000000 / 25; s++);
     }
   }
 }
