@@ -177,29 +177,35 @@ int main(void)
   printf("Test %x \n\r", data);
 
   while (1){
+    // Esperar 0.5 s
+    for (int i = 0; i < 168000000 / 25; i++) {
+      __asm__("nop");
+    };
+
+    /*
+     * Parte 1
+     */
     // data = read_reg(I3G4250D_WHO_AM_I);
     // //printf("Data: %x \n\r", data);
 
-    // // Esperar 0.5 s
-    for (int i = 0; i < 168000000 / 25; i++) {
-        __asm__("nop");
-    };
-
+    /*
+     * Parte 2
+     */
     // temp = read_reg(I3G4250D_OUT_TEMP);
-
     // temp_entero = (int8_t)temp;
     // int celsius = 25 - temp_entero;
     // printf("Temp: 0x%02x, %d, %d\n\r", temp, temp_entero, celsius);
-    
+
+    /*
+     * Parte 3
+     */
     uint8_t xl = read_reg(I3G4250D_OUT_X_L);
     uint8_t xh = read_reg(I3G4250D_OUT_X_H);
 
     int16_t raw_x = (int16_t)(((uint16_t)xh << 8) | (uint16_t)xl);
 
     float vel_dps = raw_x * 0.0175f;
-
-    printf("x_raw: %+07d\n\r", raw_x, vel_dps);
-    // printf("x_raw: %+07d\r", raw_x);
+    printf("x_raw: %+07d  vel: %+08.2f dps\r", raw_x, vel_dps);
   }
 
 }
