@@ -17,7 +17,7 @@
 ## along with this library.  If not, see <http://www.gnu.org/licenses/>.
 ##
 
-BINARY = draw_points
+BINARY = mi_grafico
 
 OOCD_INTERFACE = stlink-v2-1
 

@@ -20,6 +20,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <libopencm3/cm3/systick.h>
 #include <libopencm3/stm32/gpio.h>
@@ -97,70 +98,68 @@ int main(void) {
   lcd_spi_init();
   tft_setup();
 
-  int i, j;
-  int c=0;
+  char cmd_buf[32];
+  int diametro = 50;
+  int relleno = 1;
 
   gfx_init(lcd_draw_pixel, 240, 320);
   gfx_setTextColor(LCD_YELLOW, LCD_BLACK);
   gfx_setTextSize(LCD_TEXT_MIN_SIZE);
-  gfx_setCursor(50, 50);
-  gfx_puts("test");
+  gfx_fillScreen(LCD_BLACK);
+  gfx_setCursor(LCD_WIDTH / 2 - 20, LCD_HEIGHT / 2);
+  gfx_puts("Grupo 5");
   lcd_show_frame();
 
-  const uint8_t CIRCLE_RADIUS = 5;
-  const uint8_t ARRAY_SIZE = 50;
-
-  int x_pos = 1;
-  int y_pos = 1;
-  int x_positions[ARRAY_SIZE];
-  int y_positions[ARRAY_SIZE];
+  int x_pos = LCD_WIDTH / 2;
+  int y_pos = LCD_HEIGHT / 2;
   uint8_t current_fifo_size = 0;
   uint16_t data_x = 0;
   uint16_t data_y = 0;
   uint16_t data_z = 0;
 
-  for (int i = 0; i < ARRAY_SIZE; ++i) {
-    x_positions[i] = 0;
-    y_positions[i] = 0;
-  }
-
-  uint8_t array_index = 0;
   while (true) {
-    gfx_fillScreen(LCD_BLACK);
-    current_fifo_size = tft_get_fifo_size();
+    bool touched = tft_is_touch_detected();
 
+    current_fifo_size = tft_get_fifo_size();
     while (current_fifo_size > 0) {
       tft_get_coord_data_access(X_COORD, &data_x);
       tft_get_coord_data_access(Y_COORD, &data_y);
       tft_get_coord_data_access(Z_COORD, &data_z);
       current_fifo_size = tft_get_fifo_size();
     }
-    if (tft_is_touch_detected()) {
+
+    if (touched) {
       tft_convert_touch_coord_to_lcd_coord(data_x, data_y, &x_pos, &y_pos);
       y_pos = LCD_HEIGHT - y_pos;
-      x_positions[array_index] = x_pos;
-      y_positions[array_index] = y_pos;
-      array_index = array_index > ARRAY_SIZE ? 0 : array_index + 1;
     }
-    for (int i = 0; i < ARRAY_SIZE; ++i) {
-      gfx_fillCircle(x_positions[i], y_positions[i], CIRCLE_RADIUS, LCD_YELLOW);
-    }
-    gfx_setCursor(50, 50);
-    gfx_puts("test");
-    lcd_show_frame();
 
     /* USB terminal */
-    printf("Test\n\r");
+    bool new_cmd = false;
     if ((lo_poll(stdin) > 0)) {
-      i=0;
-      if (lo_poll(stdin) > 0) {
-    	c=0;
-    	while (c!='\r') {
-    	  c=getc(stdin);
-    	  i++;
-    	  putc(c, stdout);
-    	}
+      char c = 0;
+      int cmd_len = 0;
+      while (c != '\r' && cmd_len < (int)(sizeof(cmd_buf) - 1)) {
+        c = getc(stdin);
+        putc(c, stdout);
+        if (c != '\r') cmd_buf[cmd_len++] = c;
       }
+      cmd_buf[cmd_len] = '\0';
+      sscanf(cmd_buf, "c %d %d", &diametro, &relleno);
+      printf("\n\r");
+      new_cmd = true;
+    }
+
+    if (touched || new_cmd) {
+      gfx_fillScreen(LCD_BLACK);
+
+      if (relleno)
+        gfx_fillCircle(LCD_WIDTH / 2, LCD_HEIGHT / 2, diametro / 2, LCD_RED);
+      else
+        gfx_drawCircle(LCD_WIDTH / 2, LCD_HEIGHT / 2, diametro / 2, LCD_RED);
+
+      gfx_setCursor(x_pos - 30, y_pos);
+      gfx_puts("Grupo 5");
+      lcd_show_frame();
     }
 
   }

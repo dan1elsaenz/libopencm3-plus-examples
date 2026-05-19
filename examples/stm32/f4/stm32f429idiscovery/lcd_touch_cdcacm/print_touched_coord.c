@@ -95,6 +95,7 @@ int main(void) {
       current_fifo_size = tft_get_fifo_size();
     }
     tft_convert_touch_coord_to_lcd_coord(datax, datay, &x, &y);
+    y = LCD_HEIGHT - y;
     sprintf(sData, "%u %u", x, y);
     gfx_puts(sData);
     lcd_show_frame();
