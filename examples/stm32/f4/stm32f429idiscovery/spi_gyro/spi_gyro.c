@@ -191,12 +191,15 @@ int main(void)
     // int celsius = 25 - temp_entero;
     // printf("Temp: 0x%02x, %d, %d\n\r", temp, temp_entero, celsius);
     
-    int8_t xl = read_reg(I3G4250D_OUT_X_L);
-    int8_t xh = read_reg(I3G4250D_OUT_X_H);
+    uint8_t xl = read_reg(I3G4250D_OUT_X_L);
+    uint8_t xh = read_reg(I3G4250D_OUT_X_H);
 
-    int16_t raw_x = (int16_t)(((int16_t)xh << 8) | (int16_t)xl);
+    int16_t raw_x = (int16_t)(((uint16_t)xh << 8) | (uint16_t)xl);
 
-    printf("x_raw: 0x%04X, %+09d\r", raw_x, raw_x);
+    float vel_dps = raw_x * 0.0175f;
+
+    printf("x_raw: %+07d\n\r", raw_x, vel_dps);
+    // printf("x_raw: %+07d\r", raw_x);
   }
 
 }
