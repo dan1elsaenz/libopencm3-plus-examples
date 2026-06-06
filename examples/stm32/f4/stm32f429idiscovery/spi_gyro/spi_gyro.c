@@ -194,7 +194,7 @@ int main(void)
     // temp = read_reg(I3G4250D_OUT_TEMP);
     // temp_entero = (int8_t)temp;
     // int celsius = 25 - temp_entero;
-    // printf("Temp: 0x%02x, %d, %d\n\r", temp, temp_entero, celsius);
+    // printf("Temp: 0x%02x, %d, %d C\n\r", temp, temp_entero, celsius);
 
     /*
      * Parte 3
