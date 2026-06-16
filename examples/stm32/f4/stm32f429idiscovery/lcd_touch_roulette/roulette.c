@@ -58,7 +58,6 @@
 #define R_LABEL      93                // Radio donde se dibujan los números
 #define SPIN_TURNS   5                 // Vueltas completas antes de aterrizar
 #define SPIN_MS      4000              // Duración de la animación del giro (ms)
-#define FRAME_MS     20                // 50 FPS
 
 #define TWO_PI       6.28318530718f
 #define HALF_PI      1.57079632679f
@@ -171,39 +170,34 @@ void system_init(void) {
 /*
  * void draw_wheel(void)
  *
- * @brief  Renderiza una sola vez en el framebuffer el anillo de sectores de
- *         color y el número de cada sector. Recorre el bounding box del anillo
- *         y, para cada píxel dentro de la corona [R_INNER, R_OUTER], calcula el
- *         sector al que pertenece según su ángulo y lo pinta con su color.
+ * @brief  Dibuja el anillo de sectores de color y el número de cada sector.
+ *         Cada sector se rellena como un abanico de triángulos desde el centro
+ *         hasta el radio exterior (subdividiendo el arco para suavizar el
+ *         borde) y luego se vacía la zona central con un círculo negro para
+ *         formar la corona. Es barato de redibujar en cada cuadro.
  * @return void.
  */
 void draw_wheel(void) {
-  const int r_in2 = R_INNER * R_INNER;
-  const int r_out2 = R_OUTER * R_OUTER;
+  const float step = TWO_PI / NUM_SECTORS;
+  const int SUBDIV = 6; // Subdivisiones del arco por sector (suavidad del borde)
 
-  // Pintado de la corona de color, píxel a píxel
-  for (int y = CY - R_OUTER; y <= CY + R_OUTER; ++y) {
-    for (int x = CX - R_OUTER; x <= CX + R_OUTER; ++x) {
-      int dx = x - CX;
-      int dy = y - CY;
-      int r2 = dx * dx + dy * dy;
-      if (r2 < r_in2 || r2 > r_out2)
-        continue; // Fuera de la corona de color
-
-      // Ángulo del píxel normalizado a [0, 2π) y mapeo a sector
-      float ang = atan2f((float)dy, (float)dx);
-      if (ang < 0.0f)
-        ang += TWO_PI;
-      int sector = (int)(ang / TWO_PI * NUM_SECTORS);
-      if (sector >= NUM_SECTORS)
-        sector = NUM_SECTORS - 1;
-
-      gfx_drawPixel(x, y, sector_color(sector));
+  // Relleno de cada sector como abanico de triángulos hacia el radio exterior
+  for (int s = 0; s < NUM_SECTORS; ++s) {
+    uint16_t col = sector_color(s);
+    for (int k = 0; k < SUBDIV; ++k) {
+      float aa = (s + (float)k / SUBDIV) * step;
+      float ab = (s + (float)(k + 1) / SUBDIV) * step;
+      gfx_fillTriangle(CX, CY, CX + (int)(R_OUTER * cosf(aa)),
+                       CY + (int)(R_OUTER * sinf(aa)),
+                       CX + (int)(R_OUTER * cosf(ab)),
+                       CY + (int)(R_OUTER * sinf(ab)), col);
     }
   }
 
+  // Vacía la zona central (negra) para formar la corona de color
+  gfx_fillCircle(CX, CY, R_INNER, LCD_BLACK);
+
   // Dibujo de los números, uno por sector, en su ángulo central
-  const float step = TWO_PI / NUM_SECTORS;
   gfx_setTextSize(LCD_TEXT_MIN_SIZE);
   for (int s = 0; s < NUM_SECTORS; ++s) {
     float mid = (s + 0.5f) * step;
@@ -225,16 +219,14 @@ void draw_wheel(void) {
 /*
  * void draw_arrow(float theta)
  *
- * @brief  Borra la zona central y dibuja la flecha indicadora apuntando en la
- *         dirección dada. La flecha es un triángulo relleno con la punta hacia
- *         el borde interior del anillo y un cubo central como pivote.
+ * @brief  Dibuja la flecha indicadora apuntando en la dirección dada. La flecha
+ *         es un triángulo relleno con la punta hacia el borde interior del
+ *         anillo y un cubo central como pivote. Se dibuja sobre la zona central
+ *         (que ya quedó negra tras draw_wheel).
  * @param  theta: ángulo (en radianes) hacia el que apunta la flecha.
  * @return void.
  */
 void draw_arrow(float theta) {
-  // Limpia la zona interior para borrar la flecha del cuadro anterior
-  gfx_fillCircle(CX, CY, R_INNER - 1, LCD_BLACK);
-
   float c = cosf(theta);
   float s = sinf(theta);
 
@@ -277,38 +269,48 @@ void highlight_sector(int sector) {
 }
 
 /*
- * void show_result(int sector)
+ * void render_frame(float theta, int win)
  *
- * @brief  Muestra el resultado del giro (color y número del sector ganador) en
- *         la parte inferior de la pantalla y resalta el sector en el anillo.
- * @param  sector: índice del sector ganador.
+ * @brief  Redibuja la escena completa en el framebuffer y la envía a la
+ *         pantalla. Como lcd_show_frame intercambia (flip) dos framebuffers en
+ *         cada llamada, toda la escena debe pintarse en cada cuadro; de lo
+ *         contrario el buffer alterno muestra contenido viejo. Pinta el fondo,
+ *         el título, el anillo, la flecha y, según el estado, el mensaje de
+ *         instrucción o el resultado con el sector ganador resaltado.
+ * @param  theta: ángulo (en radianes) hacia el que apunta la flecha.
+ * @param  win:   sector ganador a resaltar, o -1 para mostrar la instrucción.
  * @return void.
  */
-void show_result(int sector) {
-  char buf[24];
-  snprintf(buf, sizeof(buf), "%s %d", sector_color_name(sector), sector);
+void render_frame(float theta, int win) {
+  gfx_fillScreen(LCD_BLACK);
 
-  highlight_sector(sector);
-
-  // Limpia la franja inferior y escribe el resultado centrado
-  gfx_fillRect(0, LCD_HEIGHT - 28, LCD_WIDTH, 28, LCD_BLACK);
+  // Título superior
   gfx_setTextSize(LCD_TEXT_MID_SIZE);
-  gfx_setTextColor(LCD_WHITE, LCD_BLACK);
-  gfx_setCursor(CX - (int)strlen(buf) * 6, LCD_HEIGHT - 22);
-  gfx_puts(buf);
+  gfx_setTextColor(LCD_YELLOW, LCD_BLACK);
+  gfx_setCursor(CX - 36, 12);
+  gfx_puts("RULETA");
 
+  draw_wheel();
+
+  if (win >= 0) {
+    // Resalta el sector ganador y muestra el resultado
+    highlight_sector(win);
+    char buf[24];
+    snprintf(buf, sizeof(buf), "%s %d", sector_color_name(win), win);
+    gfx_setTextSize(LCD_TEXT_MID_SIZE);
+    gfx_setTextColor(LCD_WHITE, LCD_BLACK);
+    gfx_setCursor(CX - (int)strlen(buf) * 6, LCD_HEIGHT - 22);
+    gfx_puts(buf);
+  } else {
+    // Mensaje de instrucción mientras se espera un toque
+    gfx_setTextSize(LCD_TEXT_MIN_SIZE);
+    gfx_setTextColor(LCD_WHITE, LCD_BLACK);
+    gfx_setCursor(CX - 48, LCD_HEIGHT - 20);
+    gfx_puts("Toca para girar");
+  }
+
+  draw_arrow(theta);
   lcd_show_frame();
-}
-
-/*
- * void clear_result_banner(void)
- *
- * @brief  Limpia la franja inferior donde se muestra el resultado, para
- *         preparar un nuevo giro.
- * @return void.
- */
-void clear_result_banner(void) {
-  gfx_fillRect(0, LCD_HEIGHT - 28, LCD_WIDTH, 28, LCD_BLACK);
 }
 
 /*
@@ -348,19 +350,12 @@ void spin_roulette(int win) {
     float eased = 1.0f - (1.0f - p) * (1.0f - p);
     arrow_theta = start_theta + total * eased;
 
-    draw_arrow(arrow_theta);
-    lcd_show_frame();
-
-    // Limita la tasa de cuadros para una animación uniforme
-    uint32_t frame_mark = mtime();
-    while (mtime() - frame_mark < FRAME_MS)
-      ;
+    // Redibuja la escena completa con la flecha en su nueva posición
+    render_frame(arrow_theta, -1);
   }
 
   // Asegura la posición final exacta en el centro del sector
   arrow_theta = target;
-  draw_arrow(arrow_theta);
-  lcd_show_frame();
 }
 
 /*
@@ -397,24 +392,9 @@ int main(void) {
   tft_setup();
 
   gfx_init(lcd_draw_pixel, LCD_WIDTH, LCD_HEIGHT);
-  gfx_fillScreen(LCD_BLACK);
 
-  // Título superior
-  gfx_setTextColor(LCD_YELLOW, LCD_BLACK);
-  gfx_setTextSize(LCD_TEXT_MID_SIZE);
-  gfx_setCursor(CX - 36, 12);
-  gfx_puts("RULETA");
-
-  // Render inicial del anillo y la flecha en reposo
-  draw_wheel();
-  draw_arrow(arrow_theta);
-
-  // Mensaje de instrucción inicial
-  gfx_setTextSize(LCD_TEXT_MIN_SIZE);
-  gfx_setTextColor(LCD_WHITE, LCD_BLACK);
-  gfx_setCursor(CX - 48, LCD_HEIGHT - 20);
-  gfx_puts("Toca para girar");
-  lcd_show_frame();
+  // Render inicial: anillo y flecha en reposo con la instrucción
+  render_frame(arrow_theta, -1);
 
   // armed = true cuando la pantalla no está siendo tocada; evita que un mismo
   // toque sostenido dispare varios giros seguidos.
@@ -433,11 +413,8 @@ int main(void) {
       printf("RNG=%lu -> sector ganador %d (%s)\n\r", (unsigned long)rnd, win,
              sector_color_name(win));
 
-      clear_result_banner();
-      lcd_show_frame();
-
       spin_roulette(win);
-      show_result(win);
+      render_frame(arrow_theta, win); // Muestra el resultado final
     }
 
     // Re-armar cuando se suelta la pantalla
